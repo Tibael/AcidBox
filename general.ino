@@ -31,6 +31,16 @@ static void IRAM_ATTR mixer() { // sum buffers
     rvb_k2 = Synth2._sendReverb;
     rvb_k3 = Drums._sendReverb;
 #endif
+    // Flags atomiques mute/solo (ecrits hors hot path, SPEC §0.4).
+    // Lus une seule fois par buffer DMA : coherence sur les 32 echantillons,
+    // et les gains sont hoistes hors de la boucle (aucun surcout par sample
+    // au-dela des 3 FMUL par canal).
+    const bool  audible_s1 = audible_synth1;
+    const bool  audible_s2 = audible_synth2;
+    const bool  audible_dr = audible_drums;
+    const float g_synth1 = (audible_s1 ? 1.0f : 0.0f);
+    const float g_synth2 = (audible_s2 ? 1.0f : 0.0f);
+    const float g_drums  = (audible_dr ? 1.0f : 0.0f);
     for (int i=0; i < DMA_BUF_LEN; i++) { 
       drums_out_l = drums_buf_l[current_out_buf][i];
       drums_out_r = drums_buf_r[current_out_buf][i];
@@ -39,6 +49,12 @@ static void IRAM_ATTR mixer() { // sum buffers
       synth1_out_r = (1.0f - Synth1.GetPan()) * synth1_buf[current_out_buf][i];
       synth2_out_l = Synth2.GetPan() * synth2_buf[current_out_buf][i];
       synth2_out_r = (1.0f - Synth2.GetPan()) * synth2_buf[current_out_buf][i];
+
+      // F3 — mute/solo : gain 0.0/1.0 (calcule au-dessus, constant sur le buffer).
+      // Coupe aussi l'alimentation des buses delay/reverb de l'instrument.
+      synth1_out_l *= g_synth1;  synth1_out_r *= g_synth1;
+      synth2_out_l *= g_synth2;  synth2_out_r *= g_synth2;
+      drums_out_l  *= g_drums;   drums_out_r  *= g_drums;
 
       
       dly_l = dly_k1 * synth1_out_l + dly_k2 * synth2_out_l + dly_k3 * drums_out_l; // delay bus

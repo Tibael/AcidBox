@@ -342,9 +342,14 @@ inline void Sampler::NoteOn( uint8_t note, uint8_t vol ) {
   int j = note % sampleInfoCount;
   int param_i = note % repeat + 1;
 
-  if ( is_muted[ param_i ] == true) {
-    return;
-  }
+if ( is_muted[ param_i ] == true) {
+      return;
+    }
+    // Solo multi-instrument: si au moins un sous-instrument est en solo, seules
+    // ceux-ci restent audibles. Résolu à la NoteOn (hors du hot path audio).
+    if ( anySoloActive() && !is_soloed[ param_i ]) {
+      return;
+    }
 
 #ifdef GROUP_HATS
   switch (param_i) {
@@ -597,9 +602,14 @@ inline void Sampler::ParseCC(uint8_t cc_number , uint8_t cc_value) {
 }
 
 
+inline bool Sampler::anySoloActive() {
+  for ( int i = 0; i < 17; i++ ) {
+    if ( is_soloed[i] ) return true;
+  }
+  return false;
+}
+
 inline void Sampler::Process( float *left, float *right ) {
-
-
   float signal_l = 0.0f;
   //signal_l += slowRelease;
   float signal_r = 0.0f;

@@ -22,6 +22,7 @@
 
 #include "config.h"
 #include "fx_delay.h"
+#include "net_config.h"
 #ifndef NO_PSRAM
 #include "fx_reverb.h"
 #endif
@@ -106,6 +107,24 @@ volatile boolean processing = false;
 volatile float rvb_k1, rvb_k2, rvb_k3;
 #endif
 volatile float dly_k1, dly_k2, dly_k3;
+
+// Phase 1 — F1/F2/F3: flags atomiques mute/solo (web -> audio).
+// Ecrits HORS hot path (tache web / regular_checks), lus par mixer() sans lock.
+volatile bool audible_synth1 = true;
+volatile bool audible_synth2 = true;
+volatile bool audible_drums  = true;
+
+// Etat mute/solo des 3 instruments — mutatee par web_server.ino (Core 1, idle).
+bool mute_synth1 = false, mute_synth2 = false, mute_drums = false;
+bool solo_synth1 = false, solo_synth2 = false, solo_drums  = false;
+
+// Recalcule audible_* a partir de mute/solo. A appeler HORS hot path.
+void recalc_audible() {
+  const bool anySolo = solo_synth1 || solo_synth2 || solo_drums;
+  audible_synth1 = anySolo ? solo_synth1 : !mute_synth1;
+  audible_synth2 = anySolo ? solo_synth2 : !mute_synth2;
+  audible_drums  = anySolo ? solo_drums  : !mute_drums;
+}
 
 // tasks for Core0 and Core1
 TaskHandle_t SynthTask1;
@@ -274,6 +293,8 @@ void setup(void) {
 #ifdef JUKEBOX
   init_midi(); // AcidBanger function
 #endif
+
+  setupWebServer(); // Phase 1 F1/F2 — AP + ESPAsyncWebServer (Core 1, idle)
 
   // silence while we haven't loaded anything reasonable
   for (int i = 0; i < DMA_BUF_LEN; i++) {
