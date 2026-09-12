@@ -54,6 +54,16 @@
 
 | Test | Statut | Notes |
 |------|--------|-------|
-| C2 | ✅ PASS | 1 129 303 bytes flash (53%), RAM 43% — build référence post-Phase 2 |
-| C1 | ⏳ | après Phase 3+4 |
-| S1-S8 | ⏳ | après Phase 3+4 |
+| C1 | ✅ PASS | XIAO ESP32S3 default_8MB: 1 139 926 B (34% flash), RAM 43% — après fix HWCDC (Serial→Serial0, cf. bugs) |
+| C2 | ✅ PASS | esp32s3 générique no_ota: 1 154 067 B (55%), RAM 43% |
+| C3 | ✅ PASS | web OFF: 516 336 B (24%) vs web ON 1 154 067 B (55%) — flag efficace après fix #ifdef→#if |
+| C4 | ✅ PASS | NO_PSRAM: 1 152 919 B (54%), RAM 25% (buffers PSRAM absents) |
+| C5 | ✅ PASS | toutes tailles < limites, marge confortable |
+| S1-S8 | ✅ PASS 8/8 | TESTRESULTS.md — aucun mutex/print dans hot path, flags atomiques, JSON cohérents |
+| H1-H6 | ⏳ HARDWARE | XIAO physique requis — procédure prête (section 3) |
+
+## Bugs trouvés et corrigés par les tests
+
+1. **#ifdef vs #if (WEB_SERVER_ENABLED)** — le flag valeur 0 ne désactivait rien: 2 builds de taille identique. Fix: #if partout. Prouvé par C3 (24% vs 55%).
+2. **XIAO HWCDC** — Serial est USB-CDC (HWCDC) sur XIAO, pas HardwareSerial: SerialMIDI ne compilait pas. Fix: #undef BOARD_HAS_UART_CHIP pour ARDUINO_XIAO_ESP32S3 + MIDI_PORT Serial0. Bug upstream (projet original), préexistant à nos modifs.
+3. **PartitionScheme XIAO** — le XIAO est 8MB flash: 'no_ota' n'existe pas, utiliser 'default_8MB' (3MB APP/1.5MB SPIFFS). Documentation mise à jour dans README-EXTENDED.

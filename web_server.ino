@@ -21,7 +21,7 @@
 //    POST /api/trigger   → { id, channel, note, velocity } – maj + persistance
 //    POST /api/test      → { id } – fireTrigger(id)
 // =============================================================================
-#ifdef WEB_SERVER_ENABLED
+#if WEB_SERVER_ENABLED
 
 #include <WiFi.h>
 #include <ESPAsyncWebServer.h>

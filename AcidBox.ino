@@ -30,7 +30,7 @@
 #include "synthvoice.h"
 #include "sampler.h"
 #include <Wire.h>
-#ifdef WEB_SERVER_ENABLED
+#if WEB_SERVER_ENABLED
 // Requis ICI (et pas seulement dans web_server.ino): arduino-cli insere les
 // prototypes auto-generes des fonctions de tous les .ino apres ce bloc
 // d'includes. Sans cela, les types AsyncWebServerRequest/JsonVariant sont
@@ -379,7 +379,7 @@ void loop() { // default loopTask running on the Core1
   
   // processButtons();
   regular_checks();
-#ifdef WEB_SERVER_ENABLED
+#if WEB_SERVER_ENABLED
   wsPush(); // Phase 3 F5 : push WS 500ms si client connecte (Core 1, idle)
 #endif
   taskYIELD(); // this can wait
@@ -457,7 +457,7 @@ void regular_checks() {
   jukebox_tick();
 #endif
 
-#ifdef WEB_SERVER_ENABLED
+#if WEB_SERVER_ENABLED
   // Phase 3 — F5 : snapshot 500ms, HORS hot path, pas de lock.
   debugSnapshotTick();
 #endif
@@ -466,6 +466,6 @@ void regular_checks() {
 // Stub quand le web server est desactive : regular_checks() appelle
 // debugSnapshotTick() via #ifdef, mais la declaration auto-geneere un prototype
 // neanmoins. Fournir un corps vide pour eviter toute reference pendante.
-#ifndef WEB_SERVER_ENABLED
+#if !WEB_SERVER_ENABLED
 void debugSnapshotTick() {}
 #endif

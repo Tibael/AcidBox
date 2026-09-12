@@ -19,7 +19,7 @@
 //  Fichier compile UNIQUEMENT si WEB_SERVER_ENABLED (net_config.h). Quand la
 //  feature est desactivee, AcidBox.ino fournit le stub debugSnapshotTick().
 // =============================================================================
-#ifdef WEB_SERVER_ENABLED
+#if WEB_SERVER_ENABLED
 
 #include "config.h"
 #include "net_config.h"
