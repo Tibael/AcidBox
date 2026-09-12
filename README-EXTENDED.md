@@ -28,10 +28,14 @@ Pour le fonctionnement de base (DAC, schéma, contrôle MIDI), voir [README.md](
 
 | Bibliothèque | Rôle | Lien |
 |---|---|---|
-| **ESPAsyncWebServer** | serveur web asynchrone (Web UI) | https://github.com/espotnic/ESPAsyncWebServer |
-| **AsyncTCP** | transport TCP (dépendance ESPAsyncWebServer) | https://github.com/espotnic/AsyncTCP |
+| **ESPAsyncWebServer** | serveur web asynchrone (Web UI) | https://github.com/ESP32Async/ESPAsyncWebServer |
+| **AsyncTCP** | transport TCP (dépendance ESPAsyncWebServer) | https://github.com/ESP32Async/AsyncTCP |
 | **ArduinoJson** | API JSON + persistance triggers | https://github.com/bblanchon/ArduinoJson |
 | **[MIDI Library]** | MIDI serial (déjà requis de base) | https://github.com/FortySevenEffects/arduino_midi_library |
+
+> ⚠️ Utiliser le fork **ESP32Async** (pas le "ESPAsyncWebServer" du Library Manager,
+> fork `lacamera` v3.1.0 : il appelle des APIs mbedtls supprimées du core 3.x et
+> ne compile pas).
 
 WiFi et LittleFS sont inclus dans le core ESP32 (aucune lib externe).
 
