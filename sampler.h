@@ -40,15 +40,24 @@ DEBF("Select note: %d\r\n", note);
     void SetProgram( uint8_t prog );
     void SetVolume( float value ) { _volume = value; };
     inline void Process( float *left, float *right );
-    inline void ParseCC(uint8_t cc_number, uint8_t cc_value);
+inline void ParseCC(uint8_t cc_number, uint8_t cc_value);
     inline void PitchBend(int number);
+    // Mute / Solo — 17 sous-instruments de drums (is_muted existant, jamais exposé).
+    // Appelables uniquement HORS hot path (en web / regular_checks). Solo multi-
+    // autorisé. La résolution finale (mute & solo) est faite dans Sampler::NoteOn.
+    inline void SetMute ( uint8_t idx, bool value )  { if ( idx < 17 ) is_muted[idx] = value; }
+    inline bool GetMute ( uint8_t idx )               { return ( idx < 17 ) ? is_muted[idx] : false; }
+    inline void SetSolo ( uint8_t idx, bool value )   { if ( idx < 17 ) is_soloed[idx] = value; }
+    inline bool GetSolo ( uint8_t idx )               { return ( idx < 17 ) ? is_soloed[idx] : false; }
     float _sendReverb = 0.0f;
     float _sendDelay = 0.0f;
-    
-  private:
+
+private:
+    bool anySoloActive();
     void CreateDefaultSamples(fs::FS &fs);
     void WriteFile(fs::FS &fs, const String fname, size_t fsize, const uint8_t bytearray[] );
     boolean is_muted[17]={ false, false,false,false,false ,false,false,false,false ,false,false,false,false ,false,false,false,false };
+    boolean is_soloed[17]={ false, false,false,false,false ,false,false,false,false ,false,false,false,false ,false,false,false,false };
                   
     uint8_t volume_midi[17]     = { 127, 127,127,127,127, 127,127,127,127, 127,127,127,127, 127,127,127,127 };
     uint8_t offset_midi[17]     = { 0, 0,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,0 };

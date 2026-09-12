@@ -1,3 +1,5 @@
+#ifndef ACIDBOX_CONFIG_H
+#define ACIDBOX_CONFIG_H
 #define PROG_NAME       "ESP32 AcidBox"
 #define VERSION         "v.1.3.3"
 
@@ -115,6 +117,10 @@ const float ONE_DIV_TWOPI = 1.0f/TWOPI;
 #undef BOARD_HAS_UART_CHIP
 #endif
 
+#if (defined ARDUINO_XIAO_ESP32S3)
+#undef BOARD_HAS_UART_CHIP
+#endif
+
 #if (defined BOARD_HAS_UART_CHIP)
   #define MIDI_PORT_TYPE HardwareSerial
   #define MIDI_PORT Serial
@@ -126,7 +132,11 @@ const float ONE_DIV_TWOPI = 1.0f/TWOPI;
     #define DEBUG_PORT Serial
   #else
     #define MIDI_PORT_TYPE HardwareSerial
-    #define MIDI_PORT Serial
+    #if (defined ARDUINO_XIAO_ESP32S3)
+      #define MIDI_PORT Serial0
+    #else
+      #define MIDI_PORT Serial
+    #endif
     #define DEBUG_PORT Serial
   #endif
 #endif
@@ -299,3 +309,5 @@ static const float tuning[128] = {
 
 inline float fast_shape(float x);
 static __attribute__((always_inline)) inline float one_div(float a) ;
+
+#endif // ACIDBOX_CONFIG_H

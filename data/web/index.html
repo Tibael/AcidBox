@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AcidBox — Mixer</title>
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+  <header>
+    <h1>AcidBox</h1>
+    <span id="conn" class="conn-state">connecting…</span>
+  </header>
+
+  <main id="mixer">
+    <section class="channel" data-instrument="synth1">
+      <div class="channel-head">
+        <h2>Synth 1</h2>
+        <span class="led" title="audible"></span>
+      </div>
+      <div class="channel-btns">
+        <button class="btn mute" aria-pressed="false">Mute</button>
+        <button class="btn solo" aria-pressed="false">Solo</button>
+      </div>
+    </section>
+
+    <section class="channel" data-instrument="synth2">
+      <div class="channel-head">
+        <h2>Synth 2</h2>
+        <span class="led" title="audible"></span>
+      </div>
+      <div class="channel-btns">
+        <button class="btn mute" aria-pressed="false">Mute</button>
+        <button class="btn solo" aria-pressed="false">Solo</button>
+      </div>
+    </section>
+
+    <section class="channel" data-instrument="drums">
+      <div class="channel-head">
+        <h2>Drums</h2>
+        <span class="led" title="audible"></span>
+      </div>
+      <div class="channel-btns">
+        <button class="btn mute" aria-pressed="false">Mute</button>
+        <button class="btn solo" aria-pressed="false">Solo</button>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <p id="status" class="status">—</p>
+  </footer>
+
+  <script src="/app.js"></script>
+</body>
+</html>

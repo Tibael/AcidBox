@@ -22,6 +22,7 @@
 
 #include "config.h"
 #include "fx_delay.h"
+#include "net_config.h"
 #ifndef NO_PSRAM
 #include "fx_reverb.h"
 #endif
@@ -29,6 +30,14 @@
 #include "synthvoice.h"
 #include "sampler.h"
 #include <Wire.h>
+#if WEB_SERVER_ENABLED
+// Requis ICI (et pas seulement dans web_server.ino): arduino-cli insere les
+// prototypes auto-generes des fonctions de tous les .ino apres ce bloc
+// d'includes. Sans cela, les types AsyncWebServerRequest/JsonVariant sont
+// inconnus au point d'insertion -> erreurs de compilation.
+#include <ESPAsyncWebServer.h>
+#include <AsyncJson.h>
+#endif
 
 
 // =============================================================== MIDI interfaces ===============================================================
@@ -106,6 +115,24 @@ volatile boolean processing = false;
 volatile float rvb_k1, rvb_k2, rvb_k3;
 #endif
 volatile float dly_k1, dly_k2, dly_k3;
+
+// Phase 1 — F1/F2/F3: flags atomiques mute/solo (web -> audio).
+// Ecrits HORS hot path (tache web / regular_checks), lus par mixer() sans lock.
+volatile bool audible_synth1 = true;
+volatile bool audible_synth2 = true;
+volatile bool audible_drums  = true;
+
+// Etat mute/solo des 3 instruments — mutatee par web_server.ino (Core 1, idle).
+bool mute_synth1 = false, mute_synth2 = false, mute_drums = false;
+bool solo_synth1 = false, solo_synth2 = false, solo_drums  = false;
+
+// Recalcule audible_* a partir de mute/solo. A appeler HORS hot path.
+void recalc_audible() {
+  const bool anySolo = solo_synth1 || solo_synth2 || solo_drums;
+  audible_synth1 = anySolo ? solo_synth1 : !mute_synth1;
+  audible_synth2 = anySolo ? solo_synth2 : !mute_synth2;
+  audible_drums  = anySolo ? solo_drums  : !mute_drums;
+}
 
 // tasks for Core0 and Core1
 TaskHandle_t SynthTask1;
@@ -241,6 +268,16 @@ static void IRAM_ATTR audio_task2(void *userData) {
  *  Quite an ordinary SETUP() *******************************************************************************************************************************
 */
 
+// Phase 2 — F4 : chargement de la config des 4 triggers GPIO (LittleFS)
+// avant le web server, pour que GET /api/triggers et la page /config
+// exposent la config persistee des le boot.
+void loadTriggers();
+
+// Declaree ici (sans #ifdef) car AcidBox.ino est compile avant debug_web.ino
+// (ordre alphabetique), et regular_checks() la reference via #ifdef.
+// Stub vide fourni en bas de fichier quand WEB_SERVER_ENABLED est absent.
+void debugSnapshotTick();
+
 void setup(void) {
 
 #ifdef DEBUG_ON
@@ -273,6 +310,17 @@ void setup(void) {
   Comp.Init(SAMPLE_RATE);
 #ifdef JUKEBOX
   init_midi(); // AcidBanger function
+#endif
+
+  loadTriggers();  // Phase 2 F4 — /config/triggers.json (no-op si LittleFS pas monte)
+
+  setupWebServer(); // Phase 1 F1/F2 — AP + ESPAsyncWebServer (Core 1, idle)
+
+#if ESPNOW_ENABLED
+  // Phase 4 F6 — squelette ESP-NOW, DÉSACTIVÉ par défaut (ESPNOW_ENABLED=0).
+  // Appelée APRES setupWebServer : le mode WiFi AP et le canal radio (canal 1)
+  // sont deja en place, l'ESP-NOW herite du meme canal (contrainte F1/F6).
+  setupEspNow();
 #endif
 
   // silence while we haven't loaded anything reasonable
@@ -330,7 +378,10 @@ void loop() { // default loopTask running on the Core1
   // or   vTaskDelete(NULL);
   
   // processButtons();
-  regular_checks();    
+  regular_checks();
+#if WEB_SERVER_ENABLED
+  wsPush(); // Phase 3 F5 : push WS 500ms si client connecte (Core 1, idle)
+#endif
   taskYIELD(); // this can wait
 }
 
@@ -401,10 +452,20 @@ void regular_checks() {
 #ifdef MIDI_VIA_SERIAL2
   MIDI2.read();
 #endif
-  
+
 #ifdef JUKEBOX
   jukebox_tick();
 #endif
 
+#if WEB_SERVER_ENABLED
+  // Phase 3 — F5 : snapshot 500ms, HORS hot path, pas de lock.
+  debugSnapshotTick();
+#endif
 
 }
+// Stub quand le web server est desactive : regular_checks() appelle
+// debugSnapshotTick() via #ifdef, mais la declaration auto-geneere un prototype
+// neanmoins. Fournir un corps vide pour eviter toute reference pendante.
+#if !WEB_SERVER_ENABLED
+void debugSnapshotTick() {}
+#endif

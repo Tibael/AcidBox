@@ -1,0 +1,175 @@
+/* ===========================================================================
+ * AcidBox — dark mixer UI
+ * ========================================================================== */
+:root {
+  --bg: #0e0f12;
+  --panel: #17191f;
+  --panel-edge: #23262f;
+  --text: #d7dae0;
+  --text-dim: #6f7681;
+  --accent: #2dd4a7;
+  --mute: #e05252;
+  --solo: #e0b252;
+  --led-on: #2dd4a7;
+  --led-off: #2a2d35;
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  padding: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: "Segoe UI", system-ui, -apple-system, Roboto, sans-serif;
+  min-height: 100vh;
+}
+
+body {
+  display: flex;
+  flex-direction: column;
+}
+
+/* ---- header --------------------------------------------------------------- */
+header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 20px;
+  background: var(--panel);
+  border-bottom: 1px solid var(--panel-edge);
+}
+
+header h1 {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+
+.conn-state {
+  font-size: 12px;
+  padding: 3px 10px;
+  border-radius: 10px;
+  border: 1px solid var(--panel-edge);
+  color: var(--text-dim);
+}
+.conn-state.on  { color: var(--led-on); border-color: var(--led-on); }
+.conn-state.off { color: var(--mute);  border-color: var(--mute); }
+
+/* ---- mixer ---------------------------------------------------------------- */
+main#mixer {
+  flex: 1;
+  display: flex;
+  gap: 14px;
+  padding: 20px;
+  flex-wrap: wrap;
+  align-items: stretch;
+}
+
+.channel {
+  flex: 1 1 180px;
+  max-width: 280px;
+  min-width: 160px;
+  background: var(--panel);
+  border: 1px solid var(--panel-edge);
+  border-radius: 10px;
+  padding: 16px 14px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  transition: border-color 120ms linear, opacity 120ms linear;
+}
+
+.channel.silent { opacity: 0.55; }
+.channel.muted  { border-color: var(--mute); }
+.channel.soloed { border-color: var(--solo); }
+.channel.muted.soloed { border-color: var(--solo); }
+
+.channel-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.channel-head h2 {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text);
+}
+
+/* level / audible LED */
+.led {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--led-off);
+  box-shadow: 0 0 0 1px var(--panel-edge) inset;
+  transition: background 120ms linear, box-shadow 120ms linear;
+}
+.led.on {
+  background: var(--led-on);
+  box-shadow: 0 0 6px 1px var(--led-on);
+}
+
+/* ---- buttons --------------------------------------------------------------- */
+.channel-btns {
+  display: flex;
+  gap: 10px;
+  margin-top: auto;
+}
+
+.btn {
+  flex: 1;
+  appearance: none;
+  border: 1px solid var(--panel-edge);
+  background: #101216;
+  color: var(--text-dim);
+  font-size: 13px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  padding: 12px 0;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 100ms linear, color 100ms linear, border-color 100ms linear;
+}
+
+.btn:hover  { background: #1a1d23; color: var(--text); }
+.btn:active { background: #0b0c0f; }
+
+.btn.mute.on {
+  background: rgba(224, 82, 82, 0.14);
+  border-color: var(--mute);
+  color: var(--mute);
+}
+
+.btn.solo.on {
+  background: rgba(224, 178, 82, 0.14);
+  border-color: var(--solo);
+  color: var(--solo);
+}
+
+/* ---- footer ---------------------------------------------------------------- */
+footer {
+  padding: 10px 20px;
+  background: var(--panel);
+  border-top: 1px solid var(--panel-edge);
+}
+
+.status {
+  margin: 0;
+  font-size: 12px;
+  color: var(--text-dim);
+}
+
+/* ---- small screens --------------------------------------------------------- */
+@media (max-width: 560px) {
+  main#mixer { padding: 12px; gap: 10px; }
+  .channel   { flex-basis: 100%; max-width: none; }
+}
