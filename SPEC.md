@@ -61,6 +61,11 @@ API REST (JSON) :
 - Prévoir aussi `releaseTrigger(id)` → `handleNoteOff(...)` pour les notes tenues (synths). Pour les drums (one-shot), le NoteOff peut être immédiat ou ignoré.
 - **Persistance** : config des 4 triggers sauvegardée en LittleFS (`/config/triggers.json`), rechargée au boot. Écriture flash uniquement sur changement via l'API web (jamais dans le hot path).
 
+**Décisions de review (post-implémentation) :**
+- `handleNoteOn/handleNoteOff` : `inline` retiré de midi_handler.ino — l'appel depuis gpio_triggers.ino (ordre alphabétique .ino : g < m) exige une linkage externe standard. Déclarations anticipées dans gpio_triggers.ino.
+- `held_active[4]` (bool séparé) ajouté : la sentinelle `held_note==0` invalide la note MIDI 0 (C-1, valide). La validité de l'auto-release ne dépend plus de la valeur de la note.
+- Auto-release au re-fire : si le trigger tenait déjà une note (configurée différente entre-temps), NoteOff avant NoteOn — évite les notes orphelines sur les synthés.
+
 ### F5 — Debug web (remplace Serial debug)
 - Collecter les métriques déjà calculées : `s1T, s2T, drT, fxT` (temps par module en µs), `DMA_BUF_TIME`, heap libre, PSRAM libre, activité MIDI (compteur de notes).
 - Snapshot copié dans une struct partagée 1×/500ms (timer2 existant).

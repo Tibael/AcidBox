@@ -16,6 +16,10 @@
 //    GET  /api/state     → { synth1:{mute,solo,audible}, synth2:{...}, drums:{...} }
 //    POST /api/mute      → { instrument, muted }
 //    POST /api/solo      → { instrument, solo }
+//    GET  /config        → config.html (Config triggers GPIO)
+//    GET  /api/triggers  → [ {id,channel,note,velocity} x4 ]
+//    POST /api/trigger   → { id, channel, note, velocity } – maj + persistance
+//    POST /api/test      → { id } – fireTrigger(id)
 // =============================================================================
 #ifdef WEB_SERVER_ENABLED
 
@@ -39,6 +43,12 @@ extern volatile bool audible_synth1, audible_synth2, audible_drums;
 
 // Recalcul des flags audibles — defini dans AcidBox.ino (C++, pas extern "C").
 extern void recalc_audible();
+
+// Phase 2 — F4 : triggers GPIO (definis dans gpio_triggers.ino).
+struct TriggerConfig;
+extern TriggerConfig triggers[4];
+extern void  fireTrigger(uint8_t id);
+extern bool  saveTriggers();
 
 static AsyncWebServer server(WEB_SERVER_PORT);
 
@@ -85,6 +95,9 @@ static void handleAppJs(AsyncWebServerRequest *req) {
 static void handleStyleCss(AsyncWebServerRequest *req) {
   serveFile(req, "/web/style.css", "text/css");
 }
+static void handleConfig(AsyncWebServerRequest *req) {
+  serveFile(req, "/web/config.html", "text/html");
+}
 
 // --------------------------------------------------------------- REST handlers
 static void handleState(AsyncWebServerRequest *req) {
@@ -124,14 +137,61 @@ static void handleSolo(AsyncWebServerRequest *req, JsonVariant &json) {
   if      ( strcmp(inst, "synth1") == 0 ) { solo_synth1 = solo; ok = true; }
   else if ( strcmp(inst, "synth2") == 0 ) { solo_synth2 = solo; ok = true; }
   else if ( strcmp(inst, "drums")  == 0 ) { solo_drums  = solo; ok = true; }
-  recalc_audible();
-  if (ok)
-    req->send(200, "application/json", "{\"ok\":true}");
-  else
-    req->send(400, "application/json", "{\"ok\":false,\"error\":\"unknown-instrument\"}");
+  req->send(400, "application/json", "{\"ok\":false,\"error\":\"unknown-instrument\"}");
 }
 
-// ------------------------------------------------------------------ AP + task
+// -------------------------------------------------- Phase 2 — F4 triggers GPIO
+// GET /api/triggers → [ {id, channel, note, velocity}, ... x4 ]
+static void handleGetTriggers(AsyncWebServerRequest *req) {
+  StaticJsonDocument<256> doc;
+  JsonArray arr = doc.to<JsonArray>();
+  for (int i = 0; i < 4; i++) {
+    JsonObject o = arr.createNestedObject();
+    o["id"]       = i;
+    o["channel"]  = triggers[i].channel;
+    o["note"]     = triggers[i].note;
+    o["velocity"] = triggers[i].velocity;
+  }
+  String out;
+  serializeJson(doc, out);
+  req->send(200, "application/json", out);
+}
+
+// POST /api/trigger  body: { "id": 0..3, "channel": 1|2|10, "note": 0..127,
+//                            "velocity": 0..127 }  → maj + saveTriggers()
+static void handleSetTrigger(AsyncWebServerRequest *req, JsonVariant &json) {
+  JsonObject obj = json.as<JsonObject>();
+  const uint16_t id   = obj["id"];
+  const uint16_t chan = obj["channel"];
+  const uint16_t note = obj["note"];
+  const uint16_t vel  = obj["velocity"];
+  if (id >= 4 || (chan != 1 && chan != 2 && chan != 10) || note > 127 || vel > 127) {
+    req->send(400, "application/json", "{\"ok\":false,\"error\":\"bad-params\"}");
+    return;
+  }
+  triggers[id].channel  = (uint8_t)chan;
+  triggers[id].note     = (uint8_t)note;
+  triggers[id].velocity = (uint8_t)vel;
+  const bool saved = saveTriggers();
+  if (saved)
+    req->send(200, "application/json", "{\"ok\":true}");
+  else
+    req->send(500, "application/json", "{\"ok\":false,\"error\":\"save-failed\"}");
+}
+
+// POST /api/test  body: { "id": 0..3 } → fireTrigger(id)
+// Joue la note via le chemin MIDI existant (zéro latence audio).
+// Exécution depuis l'event-loop serveur (Core 1, idle) — pas dans le hot path.
+static void handleTestTrigger(AsyncWebServerRequest *req, JsonVariant &json) {
+  JsonObject obj = json.as<JsonObject>();
+  const uint16_t id = obj["id"];
+  if (id >= 4) {
+    req->send(400, "application/json", "{\"ok\":false,\"error\":\"bad-id\"}");
+    return;
+  }
+  fireTrigger((uint8_t)id);
+  req->send(200, "application/json", "{\"ok\":true}");
+}
 static void initWifiAP() {
   WiFi.mode(WIFI_AP);
   WiFi.softAPConfig(IPAddress(192,168,4,1), IPAddress(192,168,4,1),
@@ -143,12 +203,16 @@ static void initWifiAP() {
 
 void setupWebServer() {
   initWifiAP();
-  server.on("/",          HTTP_GET,  handleIndex);
-  server.on("/app.js",     HTTP_GET,  handleAppJs);
-  server.on("/style.css",  HTTP_GET,  handleStyleCss);
-  server.on("/api/state",  HTTP_GET,  handleState);
-  server.addHandler(new AsyncCallbackJsonWebHandler("/api/mute", handleMute));
-  server.addHandler(new AsyncCallbackJsonWebHandler("/api/solo", handleSolo));
+  server.on("/",             HTTP_GET,  handleIndex);
+  server.on("/app.js",        HTTP_GET,  handleAppJs);
+  server.on("/style.css",     HTTP_GET,  handleStyleCss);
+  server.on("/config",        HTTP_GET,  handleConfig);
+  server.on("/api/state",     HTTP_GET,  handleState);
+  server.on("/api/triggers",  HTTP_GET,  handleGetTriggers);
+  server.addHandler(new AsyncCallbackJsonWebHandler("/api/mute",    handleMute));
+  server.addHandler(new AsyncCallbackJsonWebHandler("/api/solo",    handleSolo));
+  server.addHandler(new AsyncCallbackJsonWebHandler("/api/trigger", handleSetTrigger));
+  server.addHandler(new AsyncCallbackJsonWebHandler("/api/test",    handleTestTrigger));
   server.begin();
   DEBF("WebServer: port=%d\n", WEB_SERVER_PORT);
 }

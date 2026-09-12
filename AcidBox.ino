@@ -30,6 +30,14 @@
 #include "synthvoice.h"
 #include "sampler.h"
 #include <Wire.h>
+#ifdef WEB_SERVER_ENABLED
+// Requis ICI (et pas seulement dans web_server.ino): arduino-cli insere les
+// prototypes auto-generes des fonctions de tous les .ino apres ce bloc
+// d'includes. Sans cela, les types AsyncWebServerRequest/JsonVariant sont
+// inconnus au point d'insertion -> erreurs de compilation.
+#include <ESPAsyncWebServer.h>
+#include <AsyncJson.h>
+#endif
 
 
 // =============================================================== MIDI interfaces ===============================================================
@@ -260,6 +268,11 @@ static void IRAM_ATTR audio_task2(void *userData) {
  *  Quite an ordinary SETUP() *******************************************************************************************************************************
 */
 
+// Phase 2 — F4 : chargement de la config des 4 triggers GPIO (LittleFS)
+// avant le web server, pour que GET /api/triggers et la page /config
+// exposent la config persistee des le boot.
+void loadTriggers();
+
 void setup(void) {
 
 #ifdef DEBUG_ON
@@ -293,6 +306,8 @@ void setup(void) {
 #ifdef JUKEBOX
   init_midi(); // AcidBanger function
 #endif
+
+  loadTriggers();  // Phase 2 F4 — /config/triggers.json (no-op si LittleFS pas monte)
 
   setupWebServer(); // Phase 1 F1/F2 — AP + ESPAsyncWebServer (Core 1, idle)
 

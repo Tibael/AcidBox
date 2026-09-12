@@ -29,7 +29,7 @@ inline void MidiInit() {
 }
 
 
-inline void handleNoteOn(uint8_t inChannel, uint8_t inNote, uint8_t inVelocity) {
+void handleNoteOn(uint8_t inChannel, uint8_t inNote, uint8_t inVelocity) {
 #ifdef DEBUG_MIDI
   DEB("MIDI note on ");
   DEBUG(inNote);
@@ -39,7 +39,7 @@ inline void handleNoteOn(uint8_t inChannel, uint8_t inNote, uint8_t inVelocity) 
   else if (inChannel == SYNTH2_MIDI_CHAN )  {Synth2.on_midi_noteON(inNote, inVelocity);}
 }
 
-inline void handleNoteOff(uint8_t inChannel, uint8_t inNote, uint8_t inVelocity) {
+void handleNoteOff(uint8_t inChannel, uint8_t inNote, uint8_t inVelocity) {
   if (inChannel == DRUM_MIDI_CHAN )         {Drums.NoteOff(inNote);}
   else if (inChannel == SYNTH1_MIDI_CHAN )  {Synth1.on_midi_noteOFF(inNote, inVelocity);}
   else if (inChannel == SYNTH2_MIDI_CHAN )  {Synth2.on_midi_noteOFF(inNote, inVelocity);}

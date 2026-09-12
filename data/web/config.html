@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AcidBox — Triggers GPIO</title>
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+  <header>
+    <h1>AcidBox</h1>
+    <span id="conn" class="conn-state">connecting&hellip;</span>
+  </header>
+
+  <main id="triggers">
+    <!-- un bloc par trigger, id 0..3 -->
+    <section class="channel" data-id="0">
+      <div class="channel-head">
+        <h2>Trigger 1</h2>
+        <button class="btn test" type="button">Test</button>
+      </div>
+      <div class="row">
+        <label>Channel
+          <select class="chan">
+            <option value="1">1 (Synth1)</option>
+            <option value="2">2 (Synth2)</option>
+            <option value="10" selected>10 (Drums)</option>
+          </select>
+        </label>
+      </div>
+      <div class="row">
+        <label>Note <input type="number" class="note" min="0" max="127" value="36"><output class="note-name">C1</output></label>
+      </div>
+      <div class="row">
+        <label>Velocity <input type="range" class="vel" min="0" max="127" value="127"><output class="vel-val">127</output></label>
+      </div>
+      <div class="row"><button class="btn save" type="button">Save</button></div>
+    </section>
+
+    <section class="channel" data-id="1">
+      <div class="channel-head">
+        <h2>Trigger 2</h2>
+        <button class="btn test" type="button">Test</button>
+      </div>
+      <div class="row">
+        <label>Channel
+          <select class="chan">
+            <option value="1">1 (Synth1)</option>
+            <option value="2">2 (Synth2)</option>
+            <option value="10" selected>10 (Drums)</option>
+          </select>
+        </label>
+      </div>
+      <div class="row">
+        <label>Note <input type="number" class="note" min="0" max="127" value="38"><output class="note-name">D1</output></label>
+      </div>
+      <div class="row">
+        <label>Velocity <input type="range" class="vel" min="0" max="127" value="127"><output class="vel-val">127</output></label>
+      </div>
+      <div class="row"><button class="btn save" type="button">Save</button></div>
+    </section>
+
+    <section class="channel" data-id="2">
+      <div class="channel-head">
+        <h2>Trigger 3</h2>
+        <button class="btn test" type="button">Test</button>
+      </div>
+      <div class="row">
+        <label>Channel
+          <select class="chan">
+            <option value="1">1 (Synth1)</option>
+            <option value="2">2 (Synth2)</option>
+            <option value="10" selected>10 (Drums)</option>
+          </select>
+        </label>
+      </div>
+      <div class="row">
+        <label>Note <input type="number" class="note" min="0" max="127" value="42"><output class="note-name">F1</output></label>
+      </div>
+      <div class="row">
+        <label>Velocity <input type="range" class="vel" min="0" max="127" value="127"><output class="vel-val">127</output></label>
+      </div>
+      <div class="row"><button class="btn save" type="button">Save</button></div>
+    </section>
+
+    <section class="channel" data-id="3">
+      <div class="channel-head">
+        <h2>Trigger 4</h2>
+        <button class="btn test" type="button">Test</button>
+      </div>
+      <div class="row">
+        <label>Channel
+          <select class="chan">
+            <option value="1">1 (Synth1)</option>
+            <option value="2">2 (Synth2)</option>
+            <option value="10" selected>10 (Drums)</option>
+          </select>
+        </label>
+      </div>
+      <div class="row">
+        <label>Note <input type="number" class="note" min="0" max="127" value="46"><output class="note-name">A1</output></label>
+      </div>
+      <div class="row">
+        <label>Velocity <input type="range" class="vel" min="0" max="127" value="127"><output class="vel-val">127</output></label>
+      </div>
+      <div class="row"><button class="btn save" type="button">Save</button></div>
+    </section>
+  </main>
+
+  <footer>
+    <p id="status" class="status">&mdash;</p>
+  </footer>
+
+  <script>
+  (function () {
+    "use strict";
+
+    var connEl   = document.getElementById("conn");
+    var statusEl = document.getElementById("status");
+    var NOTE_NAMES = ["C","C#","D","D#","E","F","F#","G","G#","A","A#","B"];
+
+    function noteName(n) {
+      if (n < 0 || n > 127) return "--";
+      return NOTE_NAMES[n % 12] + (Math.floor(n / 12) - 1);
+    }
+
+    function setConnected(ok) {
+      connEl.textContent = ok ? "connected" : "offline";
+      connEl.className = "conn-state " + (ok ? "on" : "off");
+    }
+
+    function setStatus(msg) {
+      statusEl.textContent = msg;
+    }
+
+    function postJSON(url, payload) {
+      return fetch(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
+      });
+    }
+
+    // Rafraichit les champs HTML d'un bloc depuis l'objet serveur.
+    function applyBlock(block, t) {
+      var chan = block.querySelector(".chan");
+      var note = block.querySelector(".note");
+      var vel  = block.querySelector(".vel");
+      chan.value = String(t.channel);
+      note.value = String(t.note);
+      vel.value  = String(t.velocity);
+      block.querySelector(".note-name").textContent = noteName(t.note);
+      block.querySelector(".vel-val").textContent  = String(t.velocity);
+    }
+
+    function blockPayload(block) {
+      return {
+        id:       parseInt(block.dataset.id, 10),
+        channel:  parseInt(block.querySelector(".chan").value, 10),
+        note:     parseInt(block.querySelector(".note").value, 10),
+        velocity: parseInt(block.querySelector(".vel").value, 10)
+      };
+    }
+
+    function loadTriggers() {
+      fetch("/api/triggers", { headers: { "Accept": "application/json" } })
+        .then(function (r) {
+          if (!r.ok) throw new Error("HTTP " + r.status);
+          return r.json();
+        })
+        .then(function (triggers) {
+          setConnected(true);
+          var blocks = document.querySelectorAll("#triggers .channel");
+          for (var i = 0; i < triggers.length && i < blocks.length; i++)
+            applyBlock(blocks[i], triggers[i]);
+          setStatus("ok");
+        })
+        .catch(function (err) {
+          setConnected(false);
+          setStatus("no server: " + err.message);
+        });
+    }
+
+    function bind() {
+      var blocks = document.querySelectorAll("#triggers .channel");
+      for (var i = 0; i < blocks.length; i++) {
+        (function (block) {
+          var note = block.querySelector(".note");
+          var vel  = block.querySelector(".vel");
+          var name = block.querySelector(".note-name");
+          var vval = block.querySelector(".vel-val");
+
+          // feedback visuel instantané des valeurs
+          note.addEventListener("input", function () {
+            name.textContent = noteName(parseInt(note.value, 10));
+          });
+          vel.addEventListener("input", function () {
+            vval.textContent = String(vel.value);
+          });
+
+          // POST /api/trigger — maj config + sauvegarde LittleFS côté firmware
+          block.querySelector(".save").addEventListener("click", function () {
+            postJSON("/api/trigger", blockPayload(block))
+              .then(function (r) { return r.json(); })
+              .then(function (res) {
+                setStatus(res && res.ok === true
+                  ? "saved: trigger " + (block.dataset.id)
+                  : "save failed: " + (res && res.error));
+                loadTriggers();
+              })
+              .catch(function (err) {
+                setStatus("error: " + err.message);
+              });
+          });
+
+          // POST /api/test — joue la note configuée (NoteOff suivant si tenu)
+          block.querySelector(".test").addEventListener("click", function () {
+            postJSON("/api/test", { id: parseInt(block.dataset.id, 10) })
+              .then(function (r) { return r.json(); })
+              .then(function (res) {
+                setStatus(res && res.ok === true
+                  ? "trigger " + block.dataset.id + " fired"
+                  : "test failed: " + (res && res.error));
+              })
+              .catch(function (err) {
+                setStatus("error: " + err.message);
+              });
+          });
+        })(blocks[i]);
+      }
+    }
+
+    document.addEventListener("DOMContentLoaded", function () {
+      bind();
+      loadTriggers();
+      // re-sync périodique (return d'onglet, etc.) — GET léger
+      setInterval(loadTriggers, 5000);
+    });
+  })();
+  </script>
+  <style>
+    /* page config — additions au style.css général */
+    main#triggers {
+      flex: 1;
+      display: flex;
+      gap: 14px;
+      padding: 20px;
+      flex-wrap: wrap;
+      align-items: stretch;
+    }
+    .channel[data-id] {
+      flex: 1 1 200px;
+      max-width: 300px;
+      min-width: 180px;
+      background: var(--panel);
+      border: 1px solid var(--panel-edge);
+      border-radius: 10px;
+      padding: 16px 14px 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .channel-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+    }
+    .channel-head h2 {
+      margin: 0;
+      font-size: 15px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--text);
+    }
+    .row { display: flex; flex-direction: column; gap: 4px; }
+    .row label {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      font-size: 12px;
+      color: var(--text-dim);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    .row input[type="number"],
+    .row select {
+      flex: 1;
+      appearance: none;
+      background: #101216;
+      color: var(--text);
+      border: 1px solid var(--panel-edge);
+      border-radius: 6px;
+      padding: 8px 10px;
+      font-size: 14px;
+    }
+    .row input[type="range"] { flex: 2; }
+    .row output { min-width: 34px; text-align: right; color: var(--accent); font-variant-numeric: tabular-nums; }
+    .btn.test {
+      flex: 0 0 auto;
+      appearance: none;
+      border: 1px solid var(--accent);
+      background: rgba(45, 212, 167, 0.12);
+      color: var(--accent);
+      font-size: 12px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      padding: 6px 14px;
+      border-radius: 8px;
+      cursor: pointer;
+    }
+    .btn.test:active { background: rgba(45, 212, 167, 0.28); }
+    .btn.save {
+      appearance: none;
+      border: 1px solid var(--panel-edge);
+      background: #101216;
+      color: var(--text-dim);
+      font-size: 13px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      padding: 10px 0;
+      border-radius: 8px;
+      cursor: pointer;
+    }
+    .btn.save:hover  { background: #1a1d23; color: var(--text); }
+    .btn.save:active { background: #0b0c0f; }
+  </style>
+</body>
+</html>

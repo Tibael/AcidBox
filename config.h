@@ -1,3 +1,5 @@
+#ifndef ACIDBOX_CONFIG_H
+#define ACIDBOX_CONFIG_H
 #define PROG_NAME       "ESP32 AcidBox"
 #define VERSION         "v.1.3.3"
 
@@ -299,3 +301,5 @@ static const float tuning[128] = {
 
 inline float fast_shape(float x);
 static __attribute__((always_inline)) inline float one_div(float a) ;
+
+#endif // ACIDBOX_CONFIG_H
