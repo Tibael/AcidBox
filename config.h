@@ -5,7 +5,7 @@
 
 #define BOARD_HAS_UART_CHIP
 
-#define JUKEBOX                 // real-time endless auto-compose acid tunes
+//#define JUKEBOX                 // real-time endless auto-compose acid tunes
 #define JUKEBOX_PLAY_ON_START   // should it play on power on, or should it wait for "boot" button to be pressed
 //#define MIDI_RAMPS              // this is what makes automated Cutoff-Reso-FX turn
 //#define TEST_POTS               // experimental interactivity with potentiometers connected to POT_PINS[] defined below
@@ -24,16 +24,16 @@
 //#define DEBUG_TIMING
 //#define DEBUG_MIDI
 
-#define MIDI_VIA_SERIAL       // use this option to enable Hairless MIDI on Serial port @115200 baud (USB connector), THIS WILL BLOCK SERIAL DEBUGGING as well
+//#define MIDI_VIA_SERIAL       // use this option to enable Hairless MIDI on Serial port @115200 baud (USB connector), THIS WILL BLOCK SERIAL DEBUGGING as well
 //#define MIDI_VIA_SERIAL2        // use this option if you want to operate by standard MIDI @31250baud, UART2 (Serial2), 
 #define MIDIRX_PIN      4       // this pin is used for input when MIDI_VIA_SERIAL2 defined (note that default pin 17 won't work with PSRAM)
 #define MIDITX_PIN      15      // this pin will be used for output (not implemented yet) when MIDI_VIA_SERIAL2 defined
 
 #define POT_NUM 3
 #if defined(CONFIG_IDF_TARGET_ESP32S3)
-#define I2S_BCLK_PIN    5       // I2S BIT CLOCK pin (BCL BCK CLK)
-#define I2S_WCLK_PIN    7       // I2S WORD CLOCK pin (WCK WCL LCK)
-#define I2S_DOUT_PIN    6       // to I2S DATA IN pin (DIN D DAT)
+#define I2S_BCLK_PIN    D10       // I2S BIT CLOCK pin (BCL BCK CLK)
+#define I2S_WCLK_PIN    D8       // I2S WORD CLOCK pin (WCK WCL LCK)
+#define I2S_DOUT_PIN    D9       // to I2S DATA IN pin (DIN D DAT)
 const uint8_t POT_PINS[POT_NUM] = {15, 16, 17};
 #elif defined(CONFIG_IDF_TARGET_ESP32)
 #define I2S_BCLK_PIN    5       // I2S BIT CLOCK pin (BCL BCK CLK)
