@@ -1,0 +1,11 @@
+# AcidBox custom partition table — 8MB flash (Seeed XIAO ESP32S3)
+# APP 2MB / LittleFS 5.9MB — les samples data/ (2.9MB) + pages web tiennent
+# avec marge (default_8MB ne donne que 1.5MB au FS: trop petit).
+# APP 2MB = 59% du build actuel (1.18MB): marge pour ESP-NOW actif + évolutions.
+# Partagé Arduino IDE (Tools > Partition Scheme > Custom) et PlatformIO
+# (board_build.partitions = partitions.csv).
+# Name,   Type, SubType, Offset,  Size,     Flags
+nvs,      data, nvs,     0x9000,  0x5000,
+otadata,  data, ota,     0xe000,  0x2000,
+app0,     app,  ota_0,   0x10000, 0x200000,
+spiffs,   data, spiffs,  0x210000,0x5F0000,

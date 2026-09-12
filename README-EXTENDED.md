@@ -26,8 +26,12 @@ sont identiques (§3). Choisissez la toolchain de votre choix.
    * **Board** : `Seeed XIAO ESP32S3` (ou `ESP32S3 Dev Module`)
    * **PSRAM** : `OPI PSRAM`
    * **Partition Scheme** :
+     * **Recommandé — Custom** (2 MB APP / 5.9 MB LittleFS) : le fichier
+       [`partitions.csv`](partitions.csv) à la racine du repo est utilisé
+       automatiquement quand *Custom* est sélectionné. 1.5MB du schéma
+       `Default with spiffs` ne suffit PAS pour les samples `data/` (2.9MB).
      * ESP32-S3 Dev Module générique : `No OTA (1MB APP/ 3MB SPIFFS)`
-     * **Seeed XIAO ESP32S3** (flash 8 MB) : `Default with spiffs (3MB APP/1.5MB SPIFFS)`
+     * **Seeed XIAO ESP32S3** (flash 8 MB) sans custom : `Default with spiffs (3MB APP/1.5MB SPIFFS)`
    * **Filesystem** : `LittleFS`
 4. Compiler & uploader le sketch.
 
@@ -71,9 +75,9 @@ pio device monitor
 
 Notes :
 
-* **Partition XIAO** : le platformio.ini fixe `default_8MB` (3 MB APP / 1.5 MB
-  SPIFFS→LittleFS) — équivalent de `Default with spiffs (3MB APP/1.5MB SPIFFS)`
-  de l'Arduino IDE.
+* **Partition** : `partitions.csv` (custom, 2 MB APP / 5.9 MB LittleFS) — les
+  samples `data/` (2.9 MB) tiennent avec marge ; `default_8MB` (1.5 MB FS) ne
+  suffisait pas.
 * **Environnement secondaire** : `esp32s3_generic` pour la carte **ESP32-S3 Dev
   Module** (référence de build) — `pio run -e esp32s3_generic`.
 * PlatformIO utilise le platform **pioarduino** (fork communautaire qui suit l'
