@@ -109,10 +109,10 @@ API REST (JSON) :
 
 ## 6. Découpage en phases (livrables incrémentaux)
 
-- **Phase 1** : `net_config.h`, WiFi AP, `web_server.ino` minimal, mute/solo (mixer + sampler), `index.html`. → Compile + AP visible + mute fonctionne.
-- **Phase 2** : `gpio_triggers.ino`, `fireTrigger()`, persistance JSON, `config.html`. → Trigger interne joue une note.
-- **Phase 3** : debug snapshot + WebSocket + `debug.html`. → Monitoring temps réel sans Serial.
-- **Phase 4** : squelette `espnow_comm` désactivé. → Compile, prêt pour activation future.
+- [x] **Phase 1** : `net_config.h`, WiFi AP, `web_server.ino` minimal, mute/solo (mixer + sampler), `index.html`. → Compile + AP visible + mute fonctionne.
+- [x] **Phase 2** : `gpio_triggers.ino`, `fireTrigger()`, persistance JSON, `config.html`. → Trigger interne joue une note.
+- [x] **Phase 3** : debug snapshot + WebSocket + `debug.html`. → Monitoring temps réel sans Serial.
+- [x] **Phase 4** : squelette `espnow_comm` désactivé. → Compile, prêt pour activation future.
 
 ## 7. Critères d'acceptation
 

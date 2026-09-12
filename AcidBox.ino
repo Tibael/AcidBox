@@ -273,6 +273,11 @@ static void IRAM_ATTR audio_task2(void *userData) {
 // exposent la config persistee des le boot.
 void loadTriggers();
 
+// Declaree ici (sans #ifdef) car AcidBox.ino est compile avant debug_web.ino
+// (ordre alphabetique), et regular_checks() la reference via #ifdef.
+// Stub vide fourni en bas de fichier quand WEB_SERVER_ENABLED est absent.
+void debugSnapshotTick();
+
 void setup(void) {
 
 #ifdef DEBUG_ON
@@ -310,6 +315,13 @@ void setup(void) {
   loadTriggers();  // Phase 2 F4 — /config/triggers.json (no-op si LittleFS pas monte)
 
   setupWebServer(); // Phase 1 F1/F2 — AP + ESPAsyncWebServer (Core 1, idle)
+
+#if ESPNOW_ENABLED
+  // Phase 4 F6 — squelette ESP-NOW, DÉSACTIVÉ par défaut (ESPNOW_ENABLED=0).
+  // Appelée APRES setupWebServer : le mode WiFi AP et le canal radio (canal 1)
+  // sont deja en place, l'ESP-NOW herite du meme canal (contrainte F1/F6).
+  setupEspNow();
+#endif
 
   // silence while we haven't loaded anything reasonable
   for (int i = 0; i < DMA_BUF_LEN; i++) {
@@ -366,7 +378,10 @@ void loop() { // default loopTask running on the Core1
   // or   vTaskDelete(NULL);
   
   // processButtons();
-  regular_checks();    
+  regular_checks();
+#ifdef WEB_SERVER_ENABLED
+  wsPush(); // Phase 3 F5 : push WS 500ms si client connecte (Core 1, idle)
+#endif
   taskYIELD(); // this can wait
 }
 
@@ -437,10 +452,20 @@ void regular_checks() {
 #ifdef MIDI_VIA_SERIAL2
   MIDI2.read();
 #endif
-  
+
 #ifdef JUKEBOX
   jukebox_tick();
 #endif
 
+#ifdef WEB_SERVER_ENABLED
+  // Phase 3 — F5 : snapshot 500ms, HORS hot path, pas de lock.
+  debugSnapshotTick();
+#endif
 
 }
+// Stub quand le web server est desactive : regular_checks() appelle
+// debugSnapshotTick() via #ifdef, mais la declaration auto-geneere un prototype
+// neanmoins. Fournir un corps vide pour eviter toute reference pendante.
+#ifndef WEB_SERVER_ENABLED
+void debugSnapshotTick() {}
+#endif

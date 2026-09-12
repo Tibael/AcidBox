@@ -50,7 +50,13 @@ extern TriggerConfig triggers[4];
 extern void  fireTrigger(uint8_t id);
 extern bool  saveTriggers();
 
+// Phase 3 — F5 : snapshot + serialisation (definis dans debug_web.ino).
+// Le push WS devient au maximum toutes les 500ms (garde cote serveur).
+extern void   debugSnapshotTick();
+extern size_t debugSnapshotToJSON(char *buf, size_t maxlen);
+
 static AsyncWebServer server(WEB_SERVER_PORT);
+static AsyncWebSocket ws("ws"); // endpoint /ws — defile dans server en setup
 
 // ---------------------------------------------------------------- JSON helpers
 static void sendState(AsyncWebServerRequest *req) {
@@ -97,6 +103,9 @@ static void handleStyleCss(AsyncWebServerRequest *req) {
 }
 static void handleConfig(AsyncWebServerRequest *req) {
   serveFile(req, "/web/config.html", "text/html");
+}
+static void handleDebug(AsyncWebServerRequest *req) {
+  serveFile(req, "/web/debug.html", "text/html");
 }
 
 // --------------------------------------------------------------- REST handlers
@@ -192,6 +201,50 @@ static void handleTestTrigger(AsyncWebServerRequest *req, JsonVariant &json) {
   fireTrigger((uint8_t)id);
   req->send(200, "application/json", "{\"ok\":true}");
 }
+
+// --------------------------------------------- Phase 3 — F5 — WebSocket /ws
+// Pousse le snapshot au client. Garde cote serveur : au maximum 1 push / 500ms.
+// Le push est fait depuis l'event loop du serveur (Core 1, priorite idle),
+// JAMAIS depuis le contexte audio.
+// Exporte (non-static) pour etre appelee depuis loop() — AcidBox.ino l'appelle
+// sous #ifdef WEB_SERVER_ENABLED, sinon un stub local la satisfait.
+void wsPush() {
+  static uint32_t last_push = 0;
+  if (ws.count() == 0) return; // pas de client = aucun travail
+  const uint32_t now = millis();
+  if (now - last_push < 500) return;
+  last_push = now;
+  char buf[220];
+  const size_t n = debugSnapshotToJSON(buf, sizeof(buf));
+  if (n > 0) ws.textAll(buf, n);
+}
+
+// Callbacks WebSocket — appeles depuis l'event loop du serveur (Core 1, idle).
+static void wsOnConnect(AsyncWebSocket * /*ws*/, AsyncWebSocketClient *client) {
+  // Prefixe constant (le snapshot JSON vary) : pre-fabriquer une fois, reutiliser
+  // a chaque connexion -> zero String allocation par client.
+  static const char *prefix = "{\"snap\":";
+  char buf[220];
+  const size_t n = debugSnapshotToJSON(buf, sizeof(buf));
+  if (n > 0) {
+    char hdr[256];
+    const int hlen = snprintf(hdr, sizeof(hdr), "%s%.*s}", prefix, (int)n, buf);
+    if (hlen > 0) client->text(hdr, hlen);
+  }
+}
+
+static void wsOnDisconnect(AsyncWebSocket * /*ws*/, AsyncWebSocketClient * /*client*/, uint8_t /*code*/) {
+  // Rien a faire : le prochain wsPush() verra ws.count() == 0.
+}
+
+// Dans le fork ESP32Async, les events WebSocket passent par onEvent() ;
+// onConnect/onDisconnect ne sont pas des methodes separees.
+static void wsOnEvent(AsyncWebSocket *server, AsyncWebSocketClient *client,
+                      AwsEventType type, void *arg, uint8_t *data, size_t len) {
+  if (type == WS_EVT_CONNECT) wsOnConnect(server, client);
+  else if (type == WS_EVT_DISCONNECT) wsOnDisconnect(server, client, 0);
+}
+
 static void initWifiAP() {
   WiFi.mode(WIFI_AP);
   WiFi.softAPConfig(IPAddress(192,168,4,1), IPAddress(192,168,4,1),
@@ -207,16 +260,21 @@ void setupWebServer() {
   server.on("/app.js",        HTTP_GET,  handleAppJs);
   server.on("/style.css",     HTTP_GET,  handleStyleCss);
   server.on("/config",        HTTP_GET,  handleConfig);
+  server.on("/debug",         HTTP_GET,  handleDebug);
   server.on("/api/state",     HTTP_GET,  handleState);
   server.on("/api/triggers",  HTTP_GET,  handleGetTriggers);
   server.addHandler(new AsyncCallbackJsonWebHandler("/api/mute",    handleMute));
   server.addHandler(new AsyncCallbackJsonWebHandler("/api/solo",    handleSolo));
   server.addHandler(new AsyncCallbackJsonWebHandler("/api/trigger", handleSetTrigger));
   server.addHandler(new AsyncCallbackJsonWebHandler("/api/test",    handleTestTrigger));
+  // Phase 3 — F5 : WebSocket — endpoint /ws, push snapshot 500ms si client.
+  ws.onEvent(wsOnEvent);
+  server.addHandler(&ws);
   server.begin();
-  DEBF("WebServer: port=%d\n", WEB_SERVER_PORT);
+  DEBF("WebServer: port=%d ws=\/ws\n", WEB_SERVER_PORT);
 }
 
 #else
 void setupWebServer() {}
+void wsPush() {}
 #endif

@@ -29,11 +29,17 @@ inline void MidiInit() {
 }
 
 
+// Phase 3 — F5 : compteur de NoteOn — ecrit en lecture par midi (Core 1),
+// copie dans le snapshot par regular_checks(). Volatile : un uint32_t aligne
+// s'ecrit/lit de facon atomique sur le port de l'ESP32.
+volatile uint32_t midi_note_count = 0;
+
 void handleNoteOn(uint8_t inChannel, uint8_t inNote, uint8_t inVelocity) {
 #ifdef DEBUG_MIDI
   DEB("MIDI note on ");
   DEBUG(inNote);
 #endif
+  midi_note_count++;
   if (inChannel == DRUM_MIDI_CHAN )         {Drums.NoteOn(inNote, inVelocity);}
   else if (inChannel == SYNTH1_MIDI_CHAN )  {Synth1.on_midi_noteON(inNote, inVelocity);}
   else if (inChannel == SYNTH2_MIDI_CHAN )  {Synth2.on_midi_noteON(inNote, inVelocity);}

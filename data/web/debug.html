@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AcidBox — Debug</title>
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+  <header>
+    <h1>AcidBox</h1>
+    <span id="conn" class="conn-state">connecting&hellip;</span>
+  </header>
+
+  <main id="debug">
+    <section class="channel metrics">
+      <div class="channel-head">
+        <h2>Module load</h2>
+        <span class="hint">% of DMA budget</span>
+      </div>
+      <div class="meter">
+        <div class="meter-row">
+          <label>Synth 1</label>
+          <div class="bar"><span id="bar-s1" class="fill"></span></div>
+          <output id="val-s1">&ndash;</output>
+        </div>
+        <div class="meter-row">
+          <label>Synth 2</label>
+          <div class="bar"><span id="bar-s2" class="fill"></span></div>
+          <output id="val-s2">&ndash;</output>
+        </div>
+        <div class="meter-row">
+          <label>Drums</label>
+          <div class="bar"><span id="bar-dr" class="fill"></span></div>
+          <output id="val-dr">&ndash;</output>
+        </div>
+        <div class="meter-row">
+          <label>Fx / Mix</label>
+          <div class="bar"><span id="bar-fx" class="fill"></span></div>
+          <output id="val-fx">&ndash;</output>
+        </div>
+      </div>
+      <div class="line">
+        <span class="k">Total</span>
+        <output id="val-tot">&ndash;</output>
+      </div>
+      <div class="line warn" id="warn-line" hidden>
+        <span class="k">Over budget</span>
+        <output id="val-warn">&ndash;</output>
+      </div>
+    </section>
+
+    <section class="channel stats">
+      <div class="channel-head">
+        <h2>System</h2>
+        <span class="hint">live</span>
+      </div>
+      <div class="stat-grid">
+        <div><span class="k">Heap</span><output id="val-heap">&ndash;</output></div>
+        <div><span class="k">PSRAM</span><output id="val-psram">&ndash;</output></div>
+        <div><span class="k">MIDI notes</span><output id="val-midi">&ndash;</output></div>
+        <div><span class="k">Uptime</span><output id="val-uptime">&ndash;</output></div>
+        <div><span class="k">DMA buf</span><output id="val-dma">&ndash;</output></div>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <p id="status" class="status">&mdash;</p>
+  </footer>
+
+  <script>
+  (function () {
+    "use strict";
+
+    var connEl   = document.getElementById("conn");
+    var statusEl = document.getElementById("status");
+
+    function setConnected(ok) {
+      connEl.textContent = ok ? "connected" : "offline";
+      connEl.className = "conn-state " + (ok ? "on" : "off");
+    }
+
+    function setStatus(msg) {
+      statusEl.textContent = msg;
+    }
+
+    function fmtBytes(n) {
+      if (n == null) return "–";
+      if (n < 1024) return n + " B";
+      var kb = n / 1024;
+      if (kb < 1024) return kb.toFixed(1) + " KB";
+      return (kb / 1024).toFixed(2) + " MB";
+    }
+
+    function fmtUptime(ms) {
+      var s = Math.floor(ms / 1000);
+      var h = Math.floor(s / 3600);
+      s = s % 3600;
+      var m = Math.floor(s / 60);
+      s = s % 60;
+      function p(x) { return x < 10 ? "0" + x : "" + x; }
+      return p(h) + ":" + p(m) + ":" + p(s);
+    }
+
+    // Met a jour les barres + chiffres depuis le snapshot JSON.
+    // s1/s2/dr/fx = temps module (us) ; dms = budget DMA (us).
+    function applySnap(s) {
+      var dms = (s && s.dms) || 0;
+      var modules = [
+        { id: "s1", v: s && s.s1 },
+        { id: "s2", v: s && s.s2 },
+        { id: "dr", v: s && s.dr },
+        { id: "fx", v: s && s.fx }
+      ];
+      var total = 0;
+      for (var i = 0; i < modules.length; i++) {
+        var m = modules[i];
+        var pct = 0;
+        if (dms > 0 && m.v != null) {
+          pct = (m.v / dms) * 100;
+          total += pct;
+          if (pct > 100) pct = 100; // borne visuelle de la barre
+        }
+        var bar = document.getElementById("bar-" + m.id);
+        var val = document.getElementById("val-" + m.id);
+        bar.style.width = pct + "%";
+        // couleur : vert < 75%, orange < 100%, rouge >= 100%
+        bar.className = "fill" + (pct >= 100 ? " over" : (pct >= 75 ? " warn" : ""));
+        val.textContent = pct.toFixed(0) + "%";
+      }
+      document.getElementById("val-tot").textContent = total.toFixed(0) + "%";
+
+      var warnLine = document.getElementById("warn-line");
+      var warnVal  = document.getElementById("val-warn");
+      if (total > 100) {
+        warnLine.hidden = false;
+        warnVal.textContent = "+" + (total - 100).toFixed(0) + "%";
+      } else {
+        warnLine.hidden = true;
+      }
+
+      if (s && s.hm    != null) document.getElementById("val-heap").textContent   = fmtBytes(s.hm);
+      if (s && s.ps    != null) document.getElementById("val-psram").textContent  = fmtBytes(s.ps);
+      if (s && s.mp    != null) document.getElementById("val-midi").textContent   = String(s.mp);
+      if (s && s.up    != null) document.getElementById("val-uptime").textContent = fmtUptime(s.up);
+      if (s && s.dms   != null) document.getElementById("val-dma").textContent    = s.dms + " us";
+    }
+
+    // Le serveur envoie pour chaque message un objet {"snap": {...}}.
+    // Au premier message apres connexion, il recoit aussi l'etat initial
+    // (mesme forme). On parse et on applique.
+    function onMessage(ev) {
+      var data;
+      try { data = JSON.parse(ev.data); }
+      catch (e) { return; }
+      var s = data && data.snap ? data.snap : data;
+      applySnap(s);
+    }
+
+    function connect() {
+      setConnected(false);
+      setStatus("connecting to /ws…");
+      var proto = location.protocol === "https:" ? "wss" : "ws";
+      var ws = new WebSocket(proto + "://" + location.host + "/ws");
+      ws.onopen = function () {
+        setConnected(true);
+        setStatus("ok — live via /ws");
+      };
+      ws.onmessage = onMessage;
+      ws.onclose = function () {
+        setConnected(false);
+        setStatus("disconnected — retry in 2s");
+        // Reconnexion automatique
+        setTimeout(connect, 2000);
+      };
+      ws.onerror = function () {
+        try { ws.close(); } catch (e) {}
+      };
+    }
+
+    document.addEventListener("DOMContentLoaded", connect);
+  })();
+  </script>
+
+  <style>
+    /* page debug — additions au style.css general */
+    main#debug {
+      flex: 1;
+      display: flex;
+      gap: 14px;
+      padding: 20px;
+      flex-wrap: wrap;
+      align-items: stretch;
+    }
+    .channel.metrics { flex: 1 1 320px; max-width: 480px; }
+    .channel.stats   { flex: 1 1 260px; max-width: 380px; }
+    .metrics, .stats {
+      background: var(--panel);
+      border: 1px solid var(--panel-edge);
+      border-radius: 10px;
+      padding: 16px 14px 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+    .channel-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .channel-head h2 {
+      margin: 0;
+      font-size: 15px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--text);
+    }
+    .hint { font-size: 11px; color: var(--text-dim); }
+
+    /* barres */
+    .meter { display: flex; flex-direction: column; gap: 10px; }
+    .meter-row {
+      display: grid;
+      grid-template-columns: 72px 1fr 48px;
+      align-items: center;
+      gap: 10px;
+    }
+    .meter-row label {
+      font-size: 12px;
+      color: var(--text-dim);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    .bar {
+      height: 12px;
+      background: #101216;
+      border: 1px solid var(--panel-edge);
+      border-radius: 6px;
+      overflow: hidden;
+    }
+    .fill {
+      display: block;
+      height: 100%;
+      width: 0%;
+      background: var(--led-on);
+      transition: width 200ms linear, background 120ms linear;
+    }
+    .fill.warn { background: var(--solo); }
+    .fill.over { background: var(--mute); }
+    .meter-row output {
+      text-align: right;
+      color: var(--text);
+      font-variant-numeric: tabular-nums;
+      font-size: 13px;
+    }
+
+    .line {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-top: 1px solid var(--panel-edge);
+      padding-top: 10px;
+    }
+    .line .k { font-size: 12px; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.05em; }
+    .line output { color: var(--accent); font-variant-numeric: tabular-nums; }
+    .line.warn .k { color: var(--mute); }
+    .line.warn output { color: var(--mute); }
+
+    /* stats */
+    .stat-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px 16px;
+    }
+    .stat-grid > div {
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+    }
+    .stat-grid .k { font-size: 11px; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.05em; }
+    .stat-grid output { color: var(--text); font-size: 15px; font-variant-numeric: tabular-nums; }
+
+    @media (max-width: 560px) {
+      main#debug { padding: 12px; gap: 10px; }
+      .channel.metrics, .channel.stats { flex-basis: 100%; max-width: none; }
+    }
+  </style>
+</body>
+</html>
