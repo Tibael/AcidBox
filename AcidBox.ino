@@ -38,6 +38,7 @@
 #include <ESPAsyncWebServer.h>
 #include <AsyncJson.h>
 #endif
+#include <esp_now.h>
 
 
 // =============================================================== MIDI interfaces ===============================================================

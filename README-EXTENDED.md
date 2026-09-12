@@ -11,7 +11,14 @@ Pour le fonctionnement de base (DAC, schéma, contrôle MIDI), voir [README.md](
 * DAC externe I2S (PCM5102 recommandé).
 * 4 boutons / capteurs pour les triggers GPIO (voir §5).
 
-## 2. Compilation (Arduino IDE)
+## 2. Compilation
+
+Deux toolchains sont supportées : **Arduino IDE** (§2.1) et **PlatformIO** (§2.2).
+Les deux compilent **exactement les mêmes fichiers** (le sketch reste à la racine du
+repo, option B) — aucun fichier n'a à être déplacé ni dupliqué, et les dépendances
+sont identiques (§3). Choisissez la toolchain de votre choix.
+
+### 2.1 Arduino IDE
 
 1. Installer le core **ESP32** (arduino-esp32) correspondant à votre IDE.
 2. Installer les bibliothèques (voir §3).
@@ -25,6 +32,53 @@ Pour le fonctionnement de base (DAC, schéma, contrôle MIDI), voir [README.md](
 4. Compiler & uploader le sketch.
 
 > ⚠️ Éviter les cores 3.1.2 / 3.1.3 / 3.2.0-RC1 (bug i2s + PSRAM, voir README.md).
+
+### 2.2 PlatformIO
+
+Aucune dépendance à installer manuellement : `lib_deps` dans `platformio.ini`
+gère l'installation automatique des bibliothèques (§3) à la première compilation.
+
+Installation :
+
+```bash
+pip install platformio        # ou : pipx install platformio
+cd <dossier du projet>
+```
+
+Build :
+
+```bash
+pio run -e xiao_esp32s3
+```
+
+Upload firmware :
+
+```bash
+pio run -e xiao_esp32s3 -t upload
+```
+
+Upload du système de fichiers (pages web + samples, dossier `data/`) :
+
+```bash
+pio run -e xiao_esp32s3 -t uploadfs
+```
+
+Moniteur série :
+
+```bash
+pio device monitor
+```
+
+Notes :
+
+* **Partition XIAO** : le platformio.ini fixe `default_8MB` (3 MB APP / 1.5 MB
+  SPIFFS→LittleFS) — équivalent de `Default with spiffs (3MB APP/1.5MB SPIFFS)`
+  de l'Arduino IDE.
+* **Environnement secondaire** : `esp32s3_generic` pour la carte **ESP32-S3 Dev
+  Module** (référence de build) — `pio run -e esp32s3_generic`.
+* PlatformIO utilise le platform **pioarduino** (fork communautaire qui suit l'
+  arduino-esp32 **core 3.x**) ; le platform officiel `espressif32` est figé sur
+  core 2.x et n'est pas compatible avec ce code (APIs I2S différentes).
 
 ## 3. Bibliothèques requises (Arduino Library Manager ou Git)
 

@@ -40,7 +40,7 @@ void handleNoteOff(uint8_t channel, uint8_t note, uint8_t velocity);
 //   2. verifier la magie (ESPNOW_MIDI_MAGIC),
 //   3. appeler handleNoteOn / handleNoteOff selon le flag noteOn — le chemin
 //      MIDI existant prend le relais (aucune latence audio ajoutée).
-static void espNowOnDataRecv(const esp_now_recv_info *recv_info, const uint8_t *data) {
+static void espNowOnDataRecv(const esp_now_recv_info_t *recv_info, const uint8_t *data) {
   (void)recv_info; // MAC émetteur — pas encore utilisé (le peer sera délégué)
   if (data == NULL) return;
   const size_t len = sizeof(EspNowMidiMsg);

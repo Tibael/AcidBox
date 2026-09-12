@@ -18,6 +18,7 @@
 | C3 | Build sans web (regression) | compile avec `WEB_SERVER_ENABLED` à 0 dans net_config.h (modification temporaire) | exit 0 — prouve que le firmware reste compilable sans la fonctionnalité web |
 | C4 | Build sans PSRAM (regression NO_PSRAM) | compile avec `NO_PSRAM` (via un sketch de test ou flag temporaire) | exit 0 — le mode dégradé d'origine doit survivre |
 | C5 | Taille flash/RAM | lecture de la sortie compile | flash < 100%, RAM < 90% |
+| C6 | Build PlatformIO | `pio run -e xiao_esp32s3` | exit 0 — toolchain pioarduino (core 3.x) compile le sketch de la racine (validé par le CTO) |
 
 ## 2. Tests statiques (revue outillée)
 
@@ -59,6 +60,7 @@
 | C3 | ✅ PASS | web OFF: 516 336 B (24%) vs web ON 1 154 067 B (55%) — flag efficace après fix #ifdef→#if |
 | C4 | ✅ PASS | NO_PSRAM: 1 152 919 B (54%), RAM 25% (buffers PSRAM absents) |
 | C5 | ✅ PASS | toutes tailles < limites, marge confortable |
+| C6 | ⏳ À VENIR | build PlatformIO `pio run -e xiao_esp32s3` (pioarduino core 3.x) — le CTO l'exécutera |
 | S1-S8 | ✅ PASS 8/8 | TESTRESULTS.md — aucun mutex/print dans hot path, flags atomiques, JSON cohérents |
 | H1-H6 | ⏳ HARDWARE | XIAO physique requis — procédure prête (section 3) |
 

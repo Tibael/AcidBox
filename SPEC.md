@@ -77,6 +77,25 @@ API REST (JSON) :
 - Documenter la contrainte canal partagé avec l'AP.
 - But : préparer la comm 2 ESP32 (ex. mute distant) sans l'implémenter maintenant.
 
+### F7 — Support PlatformIO — ✅ IMPLÉMENTÉE
+- **Framework arduino** (framework = arduino) : les fichiers du sketch sont compiles tels quels.
+- **Option B — racine partagee** : `src_dir = .` et `data_dir = data`. Le sketch reste a la
+  racine du repo (fichiers `.ino`/`.h` d'origine), partage entre Arduino IDE et PlatformIO.
+  Aucun deplacement, aucune duplication.
+- **Platform pioarduino** (fork communautaire, suit l'arduino-esp32 **core 3.x**) — le
+  platform officiel `espressif32` est fige sur core 2.x, incompatible (ESP_I2S.h et APIs
+  i2s differentes). Version pinnee dans `platformio.ini` (a corriger au build si la release
+  est absente — le CTO valide le build).
+- **Deux environnements** :
+  - `xiao_esp32s3` (default_envs) : board `seeed_xiao_esp32s3`, `default_8MB.csv`
+    (3MB APP/1.5MB SPIFFS→LittleFS), qio_opi, PSRAM, `ARDUINO_USB_CDC_ON_BOOT=1`.
+  - `esp32s3_generic` : board `esp32-s3-devkitc-1` (Dev Module de reference), `default_16MB.csv`.
+- **uploadfs** : le systeme de fichiers (pages web + samples) est le dossier `data/`,
+  monte en LittleFS — `pio run -e <env> -t uploadfs`.
+- **lib_deps** : ESPAsyncWebServer, AsyncTCP, ArduinoJson ^7.4.3, MIDI Library ^5.0.2 —
+  installees automatiquement par PlatformIO (pas d'installation manuelle).
+- build_flags : `-DBOARD_HAS_PSRAM`, `-DARDUINO_USB_CDC_ON_BOOT=1`. monitor_speed 115200.
+
 ## 3. Nouveaux fichiers
 
 | Fichier | Rôle |
@@ -113,6 +132,7 @@ API REST (JSON) :
 - [x] **Phase 2** : `gpio_triggers.ino`, `fireTrigger()`, persistance JSON, `config.html`. → Trigger interne joue une note.
 - [x] **Phase 3** : debug snapshot + WebSocket + `debug.html`. → Monitoring temps réel sans Serial.
 - [x] **Phase 4** : squelette `espnow_comm` désactivé. → Compile, prêt pour activation future.
+- [x] **Phase 5** : `platformio.ini` (F7) + `.gitignore` → build PlatformIO via `pio run -e xiao_esp32s3`.
 
 ## 7. Critères d'acceptation
 
