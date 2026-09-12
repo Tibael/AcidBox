@@ -18,7 +18,9 @@ Pour le fonctionnement de base (DAC, schéma, contrôle MIDI), voir [README.md](
 3. Dans **Tools**, sélectionner :
    * **Board** : `Seeed XIAO ESP32S3` (ou `ESP32S3 Dev Module`)
    * **PSRAM** : `OPI PSRAM`
-   * **Partition Scheme** : `No OTA (1MB APP/ 3MB SPIFFS)`
+   * **Partition Scheme** :
+     * ESP32-S3 Dev Module générique : `No OTA (1MB APP/ 3MB SPIFFS)`
+     * **Seeed XIAO ESP32S3** (flash 8 MB) : `Default with spiffs (3MB APP/1.5MB SPIFFS)`
    * **Filesystem** : `LittleFS`
 4. Compiler & uploader le sketch.
 
