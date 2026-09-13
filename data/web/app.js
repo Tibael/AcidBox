@@ -149,14 +149,155 @@
   // ---- init ----------------------------------------------------------------
   document.addEventListener("DOMContentLoaded", function () {
     bindPads();
-    // Mixer page (legacy): bind channels + poll state.
-    // Drumpad page: state poll marks "connected" on successful load/pad.
     if (document.getElementById("mixer")) {
       bindMixer();
       loadState();
       setInterval(loadState, 2000);
+    } else if (document.getElementById("filter-page")) {
+      bindFilter();
+      loadState();
+    } else if (document.getElementById("memory-page")) {
+      bindMemory();
+      loadState();
     } else {
       loadState();
     }
   });
+
+  // ---- filter page ----------------------------------------------------------
+  function bindFilter() {
+    var playBtn = document.querySelector(".play-selected");
+    if (playBtn) {
+      playBtn.addEventListener("click", function () {
+        var noteInput = document.querySelector(".filter-note");
+        var note = parseInt(noteInput.value, 10);
+        if (note >= 0 && note <= 127) playPad(note, playBtn);
+      });
+    }
+    var sliders = document.querySelectorAll(".cc-slider");
+    for (var i = 0; i < sliders.length; i++) {
+      (function (slider) {
+        var output = slider.parentNode.querySelector(".cc-val");
+        slider.addEventListener("input", function () {
+          var cc = parseInt(slider.getAttribute("data-cc"), 10);
+          var val = parseInt(slider.value, 10);
+          if (output) output.textContent = val;
+          postJSON("/api/cc", { channel: 10, cc: cc, value: val })
+            .catch(function () { setStatus("cc error"); });
+        });
+      })(sliders[i]);
+    }
+    // Presets
+    refreshPresetList();
+    document.getElementById("preset-save").addEventListener("click", function () {
+      var name = document.getElementById("preset-name").value || "New";
+      var note = parseInt(document.querySelector(".filter-note").value, 10);
+      postJSON("/api/preset/save", { name: name, note: note })
+        .then(function (r) { return r.json(); })
+        .then(function (res) { if (res.ok) { setStatus("Preset " + res.id + " saved"); refreshPresetList(); } })
+        .catch(function () { setStatus("save failed"); });
+    });
+    document.getElementById("preset-load").addEventListener("click", function () {
+      var sel = document.getElementById("preset-list");
+      var id = parseInt(sel.value, 10);
+      if (isNaN(id)) return;
+      postJSON("/api/preset/load", { id: id })
+        .then(function (r) { return r.json(); })
+        .then(function (p) {
+          document.querySelector(".filter-note").value = p.note;
+          var ccs = p.ccs || {};
+          var sliders = document.querySelectorAll(".cc-slider");
+          for (var i = 0; i < sliders.length; i++) {
+            var cc = parseInt(sliders[i].getAttribute("data-cc"), 10);
+            var val = ccs[cc] !== undefined ? ccs[cc] : 64;
+            sliders[i].value = val;
+            var out = sliders[i].parentNode.querySelector(".cc-val");
+            if (out) out.textContent = val;
+            postJSON("/api/cc", { channel: 10, cc: cc, value: val });
+          }
+          document.getElementById("preset-name").value = p.name || "";
+          setStatus("Preset loaded: " + (p.name || id));
+        })
+        .catch(function () { setStatus("load failed"); });
+    });
+    document.getElementById("preset-del").addEventListener("click", function () {
+      var sel = document.getElementById("preset-list");
+      var id = parseInt(sel.value, 10);
+      if (isNaN(id)) return;
+      if (!confirm("Delete preset " + id + "?")) return;
+      postJSON("/api/preset/del", { id: id })
+        .then(function (r) { return r.json(); })
+        .then(function (res) { if (res.ok) { setStatus("Preset deleted"); refreshPresetList(); } })
+        .catch(function () { setStatus("delete failed"); });
+    });
+    // Assign to Sensor
+    document.getElementById("assign-btn").addEventListener("click", function () {
+      var id = parseInt(document.getElementById("assign-trigger").value, 10);
+      var note = parseInt(document.querySelector(".filter-note").value, 10);
+      var vel = 127;
+      postJSON("/api/trigger", { id: id, channel: 10, note: note, velocity: vel })
+        .then(function (r) { return r.json(); })
+        .then(function (res) { if (res.ok) { setStatus("Assigned to Trigger " + (id+1)); } })
+        .catch(function () { setStatus("assign failed"); });
+    });
+  }
+  function refreshPresetList() {
+    fetch("/api/preset/list")
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        var sel = document.getElementById("preset-list");
+        sel.innerHTML = "";
+        var presets = data.presets || [];
+        for (var i = 0; i < presets.length; i++) {
+          var opt = document.createElement("option");
+          opt.value = presets[i].id;
+          opt.textContent = presets[i].id + ": " + (presets[i].name || "(empty)");
+          sel.appendChild(opt);
+        }
+      })
+      .catch(function () { setStatus("preset list failed"); });
+  }
+  // ---- memory page -----------------------------------------------------------
+  function bindMemory() {
+    refreshMemList();
+    document.getElementById("mem-save").addEventListener("click", function () {
+      var name = document.getElementById("mem-name").value || "Memory";
+      postJSON("/api/memory/save", { name: name })
+        .then(function (r) { return r.json(); })
+        .then(function (res) { if (res.ok) { setStatus("Memory " + res.id + " created"); refreshMemList(); } })
+        .catch(function () { setStatus("memory create failed"); });
+    });
+    document.getElementById("mem-load").addEventListener("click", function () {
+      var id = parseInt(document.getElementById("mem-list").value, 10);
+      if (isNaN(id)) return;
+      postJSON("/api/memory/load", { id: id })
+        .then(function (r) { return r.json(); })
+        .then(function (res) { if (res.ok) setStatus("Memory " + id + " loaded"); })
+        .catch(function () { setStatus("memory load failed"); });
+    });
+    document.getElementById("mem-del").addEventListener("click", function () {
+      var id = parseInt(document.getElementById("mem-list").value, 10);
+      if (isNaN(id)) return;
+      postJSON("/api/memory/del", { id: id })
+        .then(function (r) { return r.json(); })
+        .then(function (res) { if (res.ok) { setStatus("Memory deleted"); refreshMemList(); } })
+        .catch(function () { setStatus("memory delete failed"); });
+    });
+  }
+  function refreshMemList() {
+    fetch("/api/memory/list")
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        var sel = document.getElementById("mem-list");
+        sel.innerHTML = "";
+        var mems = data.memories || [];
+        for (var i = 0; i < mems.length; i++) {
+          var opt = document.createElement("option");
+          opt.value = mems[i].id;
+          opt.textContent = mems[i].id + ": " + (mems[i].name || "(empty)");
+          sel.appendChild(opt);
+        }
+      })
+      .catch(function () { setStatus("memory list failed"); });
+  }
 })();

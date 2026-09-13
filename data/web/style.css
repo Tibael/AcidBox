@@ -86,13 +86,25 @@ header h1 {
 /* ---- drumpad --------------------------------------------------------------- */
 #drumpad {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
   gap: 16px;
   padding: 20px;
   max-width: 900px;
   margin: 0 auto;
   width: 100%;
   box-sizing: border-box;
+}
+
+.pad-section-title {
+  grid-column: 1 / -1;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-dim);
+  border-bottom: 1px solid var(--panel-edge);
+  padding: 0 0 6px;
+  margin-top: 6px;
 }
 
 .pad {

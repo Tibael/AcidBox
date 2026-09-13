@@ -4,4 +4,4 @@
 .gcc-flags.json
 *.elf
 *.bin
-build-*.log
+build-*.logAcidBox.ino.cpp

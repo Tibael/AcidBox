@@ -29,6 +29,8 @@
 #include <ArduinoJson.h>
 #include "net_config.h"
 #include "config.h"
+#include "presets.h"
+#include "memory.h"
 
 extern SynthVoice Synth1, Synth2;
 extern Sampler Drums;
@@ -59,6 +61,7 @@ extern size_t debugSnapshotToJSON(char *buf, size_t maxlen);
 // en memoire, sans latence ajoutee. Ordre alphab .ino : m < w, la definition
 // precede ; on declara ici pour etre sur de la linkage externe standard.
 extern void handleNoteOn(uint8_t inChannel, uint8_t inNote, uint8_t inVelocity);
+extern void handleCC(uint8_t inChannel, uint8_t cc_number, uint8_t cc_value);
 
 static AsyncWebServer server(WEB_SERVER_PORT);
 static AsyncWebSocket ws("ws"); // endpoint /ws — defile dans server en setup
@@ -111,6 +114,12 @@ static void handleConfig(AsyncWebServerRequest *req) {
 }
 static void handleDebug(AsyncWebServerRequest *req) {
   serveFile(req, "/web/debug.html", "text/html");
+}
+static void handleFilter(AsyncWebServerRequest *req) {
+  serveFile(req, "/web/filter.html", "text/html");
+}
+static void handleMemory(AsyncWebServerRequest *req) {
+  serveFile(req, "/web/memory.html", "text/html");
 }
 
 // --------------------------------------------------------------- REST handlers
@@ -226,6 +235,162 @@ static void handlePad(AsyncWebServerRequest *req, JsonVariant &json) {
   req->send(200, "application/json", "{\"ok\":true}");
 }
 
+// POST /api/cc   body: { "channel": 1|2|10, "cc": 0..119, "value": 0..127 }
+// Envoie un control change via le chemin MIDI existant (handleCC), qui
+// re-route vers Drums/Synth1/Synth2.ParseCC selon le channel.
+// CC 120-127 reservationnee (system) — exclue ici par validation.
+// Exécution depuis l'event-loop serveur (Core 1, idle) — pas dans le hot path.
+static void handleCC_web(AsyncWebServerRequest *req, JsonVariant &json) {
+  JsonObject obj = json.as<JsonObject>();
+  if (!obj.containsKey("channel") || !obj.containsKey("cc") || !obj.containsKey("value")) {
+    req->send(400, "application/json", "{\"ok\":false,\"error\":\"bad-params\"}");
+    return;
+  }
+  const uint16_t chan = obj["channel"];
+  const uint16_t cc   = obj["cc"];
+  const uint16_t val  = obj["value"];
+  if ((chan != 1 && chan != 2 && chan != 10) || cc > 119 || val > 127) {
+    req->send(400, "application/json", "{\"ok\":false,\"error\":\"bad-params\"}");
+    return;
+  }
+  handleCC((uint8_t)chan, (uint8_t)cc, (uint8_t)val);
+  req->send(200, "application/json", "{\"ok\":true}");
+}
+
+// ----------------------------------------------- Phase C — Presets
+// GET  /api/preset/list  → { count: N, presets: [{id,name}] }
+static void handlePresetList(AsyncWebServerRequest *req) {
+  JsonDocument doc;
+  doc["count"] = presetCount;
+  JsonArray arr = doc.createNestedArray("presets");
+  presetCount = presetCount > MAX_PRESETS ? MAX_PRESETS : presetCount;
+  for (uint8_t i = 0; i < presetCount; i++) {
+    JsonObject o = arr.add<JsonObject>();
+    o["id"]   = i;
+    o["name"] = presets[i].name;
+  }
+  String out;
+  serializeJson(doc, out);
+  req->send(200, "application/json", out);
+}
+
+// POST /api/preset/save  { name, note } → { id, ok:true }
+static void handlePresetSave(AsyncWebServerRequest *req, JsonVariant &json) {
+  JsonObject obj = json.as<JsonObject>();
+  const char *name = obj["name"] | "";
+  const uint16_t note = obj["note"] | 36;
+  if (note > 127) {
+    req->send(400, "application/json", "{\"ok\":false,\"error\":\"bad-note\"}");
+    return;
+  }
+  int idx = addPreset(name, (uint8_t)note);
+  if (idx < 0) {
+    req->send(400, "application/json", "{\"ok\":false,\"error\":\"full\"}");
+    return;
+  }
+  savePresets();
+  String out;
+  out.reserve(48);
+  out += "{\"ok\":true,\"id\":";
+  out += idx;
+  out += "}";
+  req->send(200, "application/json", out);
+}
+
+// POST /api/preset/load  { id } → { note, ccs:{ "7":64, ... } }
+static void handlePresetLoad(AsyncWebServerRequest *req, JsonVariant &json) {
+  JsonObject obj = json.as<JsonObject>();
+  const uint16_t id = obj["id"];
+  if (id >= presetCount) {
+    req->send(400, "application/json", "{\"ok\":false,\"error\":\"bad-id\"}");
+    return;
+  }
+  Preset &p = presets[id];
+  JsonDocument doc;
+  doc["id"]   = id;
+  doc["name"] = p.name;
+  doc["note"] = p.note;
+  JsonObject ccs = doc.createNestedObject("ccs");
+  for (int c = 0; c < 128; c++) {
+    if (p.ccs[c] != PRESET_CC_UNUSED) {
+      ccs[String(c)] = p.ccs[c];
+    }
+  }
+  String out;
+  serializeJson(doc, out);
+  req->send(200, "application/json", out);
+}
+
+// POST /api/preset/del  { id } → { ok:true }
+static void handlePresetDel(AsyncWebServerRequest *req, JsonVariant &json) {
+  JsonObject obj = json.as<JsonObject>();
+  const uint16_t id = obj["id"];
+  if (id >= presetCount) {
+    req->send(400, "application/json", "{\"ok\":false,\"error\":\"bad-id\"}");
+    return;
+  }
+  deletePreset((uint8_t)id);
+  savePresets();
+  req->send(200, "application/json", "{\"ok\":true}");
+}
+
+// POST /api/preset/update-cc  { id, cc, value } → sauvegarde dynamique
+static void handlePresetUpdateCC(AsyncWebServerRequest *req, JsonVariant &json) {
+  JsonObject obj = json.as<JsonObject>();
+  const uint16_t id    = obj["id"];
+  const uint16_t cc    = obj["cc"];
+  const uint16_t value = obj["value"];
+  if (id >= presetCount || cc > 127 || value > 127) {
+    req->send(400, "application/json", "{\"ok\":false,\"error\":\"bad-params\"}");
+    return;
+  }
+  presets[id].ccs[(uint8_t)cc] = (uint8_t)value;
+  savePresets();
+  req->send(200, "application/json", "{\"ok\":true}");
+}
+
+// ----------------------------------------------- Phase E — Memories
+// GET  /api/memory/list  → { count, memories: [{id,name}] }
+static void handleMemList(AsyncWebServerRequest *req) {
+  JsonDocument doc;
+  doc["count"] = memCount;
+  JsonArray arr = doc.createNestedArray("memories");
+  for (uint8_t i = 0; i < memCount; i++) {
+    JsonObject o = arr.add<JsonObject>();
+    o["id"]   = i;
+    o["name"] = memories[i].name;
+  }
+  String out; serializeJson(doc, out);
+  req->send(200, "application/json", out);
+}
+// POST /api/memory/save  { name } → { id, ok:true }
+static void handleMemSave(AsyncWebServerRequest *req, JsonVariant &json) {
+  JsonObject obj = json.as<JsonObject>();
+  const char *name = obj["name"] | "Memory";
+  int idx = addMemory(name);
+  if (idx < 0) { req->send(400, "application/json", "{\"ok\":false,\"error\":\"full\"}"); return; }
+  saveMemories();
+  String out = "{\"ok\":true,\"id\":"; out += idx; out += "}";
+  req->send(200, "application/json", out);
+}
+// POST /api/memory/load  { id } → { ok:true }
+static void handleMemLoad(AsyncWebServerRequest *req, JsonVariant &json) {
+  JsonObject obj = json.as<JsonObject>();
+  const uint16_t id = obj["id"];
+  if (id >= memCount) { req->send(400, "application/json", "{\"ok\":false,\"error\":\"bad-id\"}"); return; }
+  loadMemory((uint8_t)id);
+  req->send(200, "application/json", "{\"ok\":true}");
+}
+// POST /api/memory/del  { id } → { ok:true }
+static void handleMemDel(AsyncWebServerRequest *req, JsonVariant &json) {
+  JsonObject obj = json.as<JsonObject>();
+  const uint16_t id = obj["id"];
+  if (id >= memCount) { req->send(400, "application/json", "{\"ok\":false,\"error\":\"bad-id\"}"); return; }
+  delMemory((uint8_t)id);
+  saveMemories();
+  req->send(200, "application/json", "{\"ok\":true}");
+}
+
 // --------------------------------------------- Phase 3 — F5 — WebSocket /ws
 // Pousse le snapshot au client. Garde cote serveur : au maximum 1 push / 500ms.
 // Le push est fait depuis l'event loop du serveur (Core 1, priorite idle),
@@ -285,6 +450,8 @@ void setupWebServer() {
   server.on("/style.css",     HTTP_GET,  handleStyleCss);
   server.on("/config",        HTTP_GET,  handleConfig);
   server.on("/debug",         HTTP_GET,  handleDebug);
+  server.on("/filter",        HTTP_GET,  handleFilter);
+  server.on("/memory",        HTTP_GET,  handleMemory);
   server.on("/api/state",     HTTP_GET,  handleState);
   server.on("/api/triggers",  HTTP_GET,  handleGetTriggers);
   server.addHandler(new AsyncCallbackJsonWebHandler("/api/mute",    handleMute));
@@ -292,7 +459,19 @@ void setupWebServer() {
   server.addHandler(new AsyncCallbackJsonWebHandler("/api/trigger", handleSetTrigger));
   server.addHandler(new AsyncCallbackJsonWebHandler("/api/test",    handleTestTrigger));
   server.addHandler(new AsyncCallbackJsonWebHandler("/api/pad",     handlePad));
-  // Phase 3 — F5 : WebSocket — endpoint /ws, push snapshot 500ms si client.
+  server.addHandler(new AsyncCallbackJsonWebHandler("/api/cc",      handleCC_web));
+  server.on("/api/preset/list", HTTP_GET,  handlePresetList);
+  server.addHandler(new AsyncCallbackJsonWebHandler("/api/preset/save",      handlePresetSave));
+  server.addHandler(new AsyncCallbackJsonWebHandler("/api/preset/load",      handlePresetLoad));
+  server.addHandler(new AsyncCallbackJsonWebHandler("/api/preset/del",       handlePresetDel));
+  server.addHandler(new AsyncCallbackJsonWebHandler("/api/preset/update-cc", handlePresetUpdateCC));
+  server.on("/api/memory/list", HTTP_GET,  handleMemList);
+  server.addHandler(new AsyncCallbackJsonWebHandler("/api/memory/save",      handleMemSave));
+  server.addHandler(new AsyncCallbackJsonWebHandler("/api/memory/load",      handleMemLoad));
+  server.addHandler(new AsyncCallbackJsonWebHandler("/api/memory/del",       handleMemDel));
+  // Phases C+E — init LittleFS
+  initPresets();
+  initMemories();
   ws.onEvent(wsOnEvent);
   server.addHandler(&ws);
   server.begin();

@@ -37,6 +37,8 @@
 // inconnus au point d'insertion -> erreurs de compilation.
 #include <ESPAsyncWebServer.h>
 #include <AsyncJson.h>
+#include "presets.h"
+#include "memory.h"
 #endif
 #include <esp_now.h>
 

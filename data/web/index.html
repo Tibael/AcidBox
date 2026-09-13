@@ -13,21 +13,93 @@
       <a href="/" class="active">Drumpad</a>
       <a href="/config">Config</a>
       <a href="/debug">Debug</a>
+      <a href="/filter">Filter</a>
+      <a href="/memory">Memory</a>
     </nav>
     <span id="conn" class="conn-state">connecting…</span>
   </header>
 
   <main id="drumpad">
+    <span class="pad-section-title">Variation Select</span>
+    <button class="pad" data-note="24" type="button">
+      <span class="pad-name">VA</span>
+      <span class="pad-desc">Var A</span>
+      <span class="pad-note">Note 24</span>
+    </button>
+    <button class="pad" data-note="25" type="button">
+      <span class="pad-name">VB</span>
+      <span class="pad-desc">Var B</span>
+      <span class="pad-note">Note 25</span>
+    </button>
+    <button class="pad" data-note="26" type="button">
+      <span class="pad-name">VC</span>
+      <span class="pad-desc">Var C</span>
+      <span class="pad-note">Note 26</span>
+    </button>
+    <button class="pad" data-note="27" type="button">
+      <span class="pad-name">VD</span>
+      <span class="pad-desc">Var D</span>
+      <span class="pad-note">Note 27</span>
+    </button>
+    <button class="pad" data-note="28" type="button">
+      <span class="pad-name">VE</span>
+      <span class="pad-desc">Var E</span>
+      <span class="pad-note">Note 28</span>
+    </button>
+    <button class="pad" data-note="29" type="button">
+      <span class="pad-name">VF</span>
+      <span class="pad-desc">Var F</span>
+      <span class="pad-note">Note 29</span>
+    </button>
+    <button class="pad" data-note="30" type="button">
+      <span class="pad-name">VG</span>
+      <span class="pad-desc">Var G</span>
+      <span class="pad-note">Note 30</span>
+    </button>
+    <button class="pad" data-note="31" type="button">
+      <span class="pad-name">VH</span>
+      <span class="pad-desc">Var H</span>
+      <span class="pad-note">Note 31</span>
+    </button>
+    <span class="pad-section-title">Reserved / Extra</span>
+    <button class="pad" data-note="32" type="button">
+      <span class="pad-name">—</span>
+      <span class="pad-desc">Extra</span>
+      <span class="pad-note">Note 32</span>
+    </button>
+    <button class="pad" data-note="33" type="button">
+      <span class="pad-name">—</span>
+      <span class="pad-desc">Extra</span>
+      <span class="pad-note">Note 33</span>
+    </button>
+    <button class="pad" data-note="34" type="button">
+      <span class="pad-name">—</span>
+      <span class="pad-desc">Extra</span>
+      <span class="pad-note">Note 34</span>
+    </button>
+    <span class="pad-section-title">Bass Drum</span>
+    <button class="pad" data-note="35" type="button">
+      <span class="pad-name">BD2</span>
+      <span class="pad-desc">Bass Drum 2</span>
+      <span class="pad-note">Note 35</span>
+    </button>
     <button class="pad" data-note="36" type="button">
       <span class="pad-name">BD</span>
       <span class="pad-desc">Bass Drum</span>
       <span class="pad-note">Note 36</span>
     </button>
+    <span class="pad-section-title">Snare</span>
     <button class="pad" data-note="38" type="button">
       <span class="pad-name">SD</span>
       <span class="pad-desc">Snare Drum</span>
       <span class="pad-note">Note 38</span>
     </button>
+    <button class="pad" data-note="40" type="button">
+      <span class="pad-name">SD2</span>
+      <span class="pad-desc">Snare Drum 2</span>
+      <span class="pad-note">Note 40</span>
+    </button>
+    <span class="pad-section-title">Rim / Clap</span>
     <button class="pad" data-note="37" type="button">
       <span class="pad-name">RS</span>
       <span class="pad-desc">Rim Shot</span>
@@ -38,45 +110,66 @@
       <span class="pad-desc">Hand Clap</span>
       <span class="pad-note">Note 39</span>
     </button>
+    <span class="pad-section-title">Lo Tom</span>
+    <button class="pad" data-note="41" type="button">
+      <span class="pad-name">LT</span>
+      <span class="pad-desc">Low Tom</span>
+      <span class="pad-note">Note 41</span>
+    </button>
+    <button class="pad" data-note="43" type="button">
+      <span class="pad-name">LT2</span>
+      <span class="pad-desc">Low Tom 2</span>
+      <span class="pad-note">Note 43</span>
+    </button>
+    <span class="pad-section-title">Mid Tom</span>
+    <button class="pad" data-note="45" type="button">
+      <span class="pad-name">MT</span>
+      <span class="pad-desc">Mid Tom</span>
+      <span class="pad-note">Note 45</span>
+    </button>
+    <button class="pad" data-note="47" type="button">
+      <span class="pad-name">MT2</span>
+      <span class="pad-desc">Mid Tom 2</span>
+      <span class="pad-note">Note 47</span>
+    </button>
+    <span class="pad-section-title">Hi Tom</span>
+    <button class="pad" data-note="48" type="button">
+      <span class="pad-name">HT</span>
+      <span class="pad-desc">Hi Tom</span>
+      <span class="pad-note">Note 48</span>
+    </button>
+    <button class="pad" data-note="50" type="button">
+      <span class="pad-name">HT2</span>
+      <span class="pad-desc">Hi Tom 2</span>
+      <span class="pad-note">Note 50</span>
+    </button>
+    <span class="pad-section-title">HiHat</span>
     <button class="pad" data-note="42" type="button">
       <span class="pad-name">CH</span>
       <span class="pad-desc">Closed Hi-Hat</span>
       <span class="pad-note">Note 42</span>
+    </button>
+    <button class="pad" data-note="44" type="button">
+      <span class="pad-name">CH2</span>
+      <span class="pad-desc">Pedal/Closed Hat 2</span>
+      <span class="pad-note">Note 44</span>
     </button>
     <button class="pad" data-note="46" type="button">
       <span class="pad-name">OH</span>
       <span class="pad-desc">Open Hi-Hat</span>
       <span class="pad-note">Note 46</span>
     </button>
-    <button class="pad" data-note="41" type="button">
-      <span class="pad-name">LT</span>
-      <span class="pad-desc">Low Tom</span>
-      <span class="pad-note">Note 41</span>
-    </button>
-    <button class="pad" data-note="45" type="button">
-      <span class="pad-name">MT</span>
-      <span class="pad-desc">Mid Tom</span>
-      <span class="pad-note">Note 45</span>
-    </button>
-    <button class="pad" data-note="48" type="button">
-      <span class="pad-name">HT</span>
-      <span class="pad-desc">Hi Tom</span>
-      <span class="pad-note">Note 48</span>
-    </button>
+    <span class="pad-section-title">Cymbal</span>
     <button class="pad" data-note="49" type="button">
       <span class="pad-name">CY</span>
       <span class="pad-desc">Crash Cymbal</span>
       <span class="pad-note">Note 49</span>
     </button>
+    <span class="pad-section-title">Cowbell</span>
     <button class="pad" data-note="51" type="button">
       <span class="pad-name">CB</span>
       <span class="pad-desc">Cowbell</span>
       <span class="pad-note">Note 51</span>
-    </button>
-    <button class="pad" data-note="44" type="button">
-      <span class="pad-name">CH2</span>
-      <span class="pad-desc">Pedal/Closed Hat 2</span>
-      <span class="pad-note">Note 44</span>
     </button>
   </main>
 

@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AcidBox — Memories</title>
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+  <header>
+    <h1>AcidBox</h1>
+    <nav class="nav-links">
+      <a href="/">Drumpad</a>
+      <a href="/config">Config</a>
+      <a href="/debug">Debug</a>
+      <a href="/filter">Filter</a>
+      <a href="/memory" class="active">Memory</a>
+    </nav>
+    <span id="conn" class="conn-state">connecting&hellip;</span>
+  </header>
+
+  <main id="memory-page">
+    <section class="filter-section">
+      <h3>Create Memory</h3>
+      <div class="filter-row" style="gap:8px">
+        <input type="text" id="mem-name" placeholder="Memory name" maxlength="31" style="flex:1">
+        <button class="btn" id="mem-save">Create</button>
+      </div>
+    </section>
+
+    <section class="filter-section">
+      <h3>Memories</h3>
+      <select id="mem-list" size="8"></select>
+      <div class="filter-row" style="margin-top:8px;gap:8px;flex-wrap:wrap">
+        <button class="btn" id="mem-load">Load</button>
+        <button class="btn" id="mem-del">Delete</button>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <p id="status" class="status">&mdash;</p>
+  </footer>
+
+  <script src="/app.js"></script>
+</body>
+</html>

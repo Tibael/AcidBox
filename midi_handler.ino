@@ -1,3 +1,9 @@
+// Phase E — Memory CC dispatch — forward decls (memory.ino compiles after
+// midi_handler.ino alphabetically; these symbols need prototypes here).
+extern uint8_t memCount;
+extern uint8_t currentMemory;
+extern void    loadMemory(uint8_t id);
+
 inline void MidiInit() {
   
 #ifdef MIDI_VIA_SERIAL
@@ -87,6 +93,16 @@ inline void handleCC(uint8_t inChannel, uint8_t cc_number, uint8_t cc_value) {
       Reverb.SetLevel(cc_value * MIDI_NORM);
       break;
 #endif
+    // Phase E — Memory selection via CC (defined in memory.ino)
+    case 22:  // CC_MEMORY_SELECT
+      if (cc_value < memCount) loadMemory(cc_value);
+      break;
+    case 27:  // CC_MEMORY_PREV
+      if (cc_value > 64 && currentMemory > 0) loadMemory(--currentMemory);
+      break;
+    case 28:  // CC_MEMORY_NEXT
+      if (cc_value > 64 && currentMemory < memCount - 1) loadMemory(++currentMemory);
+      break;
     default:
       if (inChannel == DRUM_MIDI_CHAN )         {Drums.ParseCC(cc_number, cc_value);}
       else if (inChannel == SYNTH1_MIDI_CHAN )  {Synth1.ParseCC(cc_number, cc_value);}
