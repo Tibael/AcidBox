@@ -274,7 +274,7 @@ static void handlePresetList(AsyncWebServerRequest *req) {
   req->send(200, "application/json", out);
 }
 
-// POST /api/preset/save  { name, note } → { id, ok:true }
+// POST /api/preset/save  { name, note, ccs?:{ "7":64, ... } } → { id, ok:true }
 static void handlePresetSave(AsyncWebServerRequest *req, JsonVariant &json) {
   JsonObject obj = json.as<JsonObject>();
   const char *name = obj["name"] | "";
@@ -287,6 +287,16 @@ static void handlePresetSave(AsyncWebServerRequest *req, JsonVariant &json) {
   if (idx < 0) {
     req->send(400, "application/json", "{\"ok\":false,\"error\":\"full\"}");
     return;
+  }
+  const JsonVariant ccVar = obj["ccs"];
+  if (ccVar.is<JsonObject>()) {
+    for (JsonPair kv : ccVar.as<JsonObject>()) {
+      int cc = atoi(kv.key().c_str());
+      if (cc >= 0 && cc < 128) {
+        int v = (int)kv.value();
+        presets[idx].ccs[cc] = (uint8_t)constrain(v, 0, 127);
+      }
+    }
   }
   savePresets();
   String out;

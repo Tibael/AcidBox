@@ -105,8 +105,10 @@ bool savePresets() {
   return w > 0;
 }
 
-// Ajoute un nouveau preset (ccs remis a 0xFF) a la fin du table
-// et met a jour le note + nom donne. Renvoie l'index ou -1 si plein.
+// Ajoute un nouveau preset a la fin du tableau et met a jour le note + nom donne.
+// Si le JSON body contient un objet "ccs", les entrees != 0xFF y sont recopiees
+// AVANT clearPreset — non, en pratique clearPreset remet tout a 0xFF puis on
+// re-ecrit les CC fournis. Renvoie l'index ou -1 si plein.
 int addPreset(const char *name, uint8_t note) {
   if (presetCount >= MAX_PRESETS) return -1;     // table pleine
   Preset &p = presets[presetCount];

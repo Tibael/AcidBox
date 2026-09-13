@@ -167,6 +167,8 @@
   // ---- filter page ----------------------------------------------------------
   function bindFilter() {
     var playBtn = document.querySelector(".play-selected");
+    var chanSel = document.getElementById("filter-chan");
+    function getChan() { return chanSel ? parseInt(chanSel.value, 10) : 10; }
     if (playBtn) {
       playBtn.addEventListener("click", function () {
         var noteInput = document.querySelector(".filter-note");
@@ -174,6 +176,19 @@
         if (note >= 0 && note <= 127) playPad(note, playBtn);
       });
     }
+    // restore saved slider values
+    try {
+      var saved = JSON.parse(localStorage.getItem("acidbox-ccs") || "{}");
+      var sliders = document.querySelectorAll(".cc-slider");
+      for (var i = 0; i < sliders.length; i++) {
+        var cc = parseInt(sliders[i].getAttribute("data-cc"), 10);
+        if (saved[cc] !== undefined) {
+          sliders[i].value = saved[cc];
+          var out = sliders[i].parentNode.querySelector(".cc-val");
+          if (out) out.textContent = saved[cc];
+        }
+      }
+    } catch(e) {}
     var sliders = document.querySelectorAll(".cc-slider");
     for (var i = 0; i < sliders.length; i++) {
       (function (slider) {
@@ -182,17 +197,32 @@
           var cc = parseInt(slider.getAttribute("data-cc"), 10);
           var val = parseInt(slider.value, 10);
           if (output) output.textContent = val;
-          postJSON("/api/cc", { channel: 10, cc: cc, value: val })
+          // F5: persist
+          try {
+            var store = JSON.parse(localStorage.getItem("acidbox-ccs") || "{}");
+            store[cc] = val;
+            localStorage.setItem("acidbox-ccs", JSON.stringify(store));
+          } catch(e) {}
+          postJSON("/api/cc", { channel: getChan(), cc: cc, value: val })
             .catch(function () { setStatus("cc error"); });
         });
       })(sliders[i]);
     }
+    // F5: send all saved CCs to firmware on load
+    try {
+      var saved = JSON.parse(localStorage.getItem("acidbox-ccs") || "{}");
+      Object.keys(saved).forEach(function(cc) {
+        postJSON("/api/cc", { channel: getChan(), cc: parseInt(cc,10), value: saved[cc] });
+      });
+    } catch(e) {}
     // Presets
     refreshPresetList();
     document.getElementById("preset-save").addEventListener("click", function () {
       var name = document.getElementById("preset-name").value || "New";
       var note = parseInt(document.querySelector(".filter-note").value, 10);
-      postJSON("/api/preset/save", { name: name, note: note })
+      var ccs = {};
+      document.querySelectorAll(".cc-slider").forEach(function(s){ ccs[s.dataset.cc]=parseInt(s.value,10); });
+      postJSON("/api/preset/save", { name: name, note: note, ccs: ccs })
         .then(function (r) { return r.json(); })
         .then(function (res) { if (res.ok) { setStatus("Preset " + res.id + " saved"); refreshPresetList(); } })
         .catch(function () { setStatus("save failed"); });
@@ -207,14 +237,17 @@
           document.querySelector(".filter-note").value = p.note;
           var ccs = p.ccs || {};
           var sliders = document.querySelectorAll(".cc-slider");
+          var store = {};
           for (var i = 0; i < sliders.length; i++) {
             var cc = parseInt(sliders[i].getAttribute("data-cc"), 10);
             var val = ccs[cc] !== undefined ? ccs[cc] : 64;
             sliders[i].value = val;
+            store[cc] = val;
             var out = sliders[i].parentNode.querySelector(".cc-val");
             if (out) out.textContent = val;
-            postJSON("/api/cc", { channel: 10, cc: cc, value: val });
+            postJSON("/api/cc", { channel: getChan(), cc: cc, value: val });
           }
+          try { localStorage.setItem("acidbox-ccs", JSON.stringify(store)); } catch(e) {}
           document.getElementById("preset-name").value = p.name || "";
           setStatus("Preset loaded: " + (p.name || id));
         })

@@ -116,6 +116,12 @@ int addMemory(const char *name) {
   Memory &m = memories[memCount];
   clearMemory(&m);
   if (name) { size_t l = strlen(name); if (l > 31) l = 31; memcpy(m.name, name, l); m.name[l] = '\0'; }
+  // Capture current trigger configs
+  for (int t = 0; t < 4; t++) {
+    m.triggers[t].channel  = triggers[t].channel;
+    m.triggers[t].note     = triggers[t].note;
+    m.triggers[t].velocity = triggers[t].velocity;
+  }
   memCount++;
   return memCount - 1;
 }
