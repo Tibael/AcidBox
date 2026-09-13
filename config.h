@@ -44,8 +44,8 @@ const uint8_t POT_PINS[POT_NUM] = {34, 35, 36};
 
 #define SENSOR1_PIN D0
 #define SENSOR2_PIN D1
-#define SENSOR3_PIN D3
-#define SENSOR4_PIN D4
+#define SENSOR3_PIN D2
+#define SENSOR4_PIN D3
 
 float bpm = 130.0f;
 
