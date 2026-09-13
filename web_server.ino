@@ -55,6 +55,11 @@ extern bool  saveTriggers();
 extern void   debugSnapshotTick();
 extern size_t debugSnapshotToJSON(char *buf, size_t maxlen);
 
+// Chemin MIDI existant (defini dans midi_handler.ino) — reutilise la routage
+// en memoire, sans latence ajoutee. Ordre alphab .ino : m < w, la definition
+// precede ; on declara ici pour etre sur de la linkage externe standard.
+extern void handleNoteOn(uint8_t inChannel, uint8_t inNote, uint8_t inVelocity);
+
 static AsyncWebServer server(WEB_SERVER_PORT);
 static AsyncWebSocket ws("ws"); // endpoint /ws — defile dans server en setup
 
@@ -202,6 +207,25 @@ static void handleTestTrigger(AsyncWebServerRequest *req, JsonVariant &json) {
   req->send(200, "application/json", "{\"ok\":true}");
 }
 
+// POST /api/pad   body: { "note": 0..127, "velocity": 0..127 (opt, def 127) }
+// Déclenche un pad drums via le chemin MIDI existant (DRUM_MIDI_CHAN).
+// Exécution depuis l'event-loop serveur (Core 1, idle) — pas dans le hot path.
+static void handlePad(AsyncWebServerRequest *req, JsonVariant &json) {
+  JsonObject obj = json.as<JsonObject>();
+  if (!obj.containsKey("note")) {
+    req->send(400, "application/json", "{\"ok\":false,\"error\":\"bad-params\"}");
+    return;
+  }
+  const uint16_t note = obj["note"];
+  const uint16_t vel  = (obj.containsKey("velocity") ? (uint16_t)obj["velocity"] : 127);
+  if (note > 127 || vel > 127) {
+    req->send(400, "application/json", "{\"ok\":false,\"error\":\"bad-params\"}");
+    return;
+  }
+  handleNoteOn(DRUM_MIDI_CHAN, (uint8_t)note, (uint8_t)vel);
+  req->send(200, "application/json", "{\"ok\":true}");
+}
+
 // --------------------------------------------- Phase 3 — F5 — WebSocket /ws
 // Pousse le snapshot au client. Garde cote serveur : au maximum 1 push / 500ms.
 // Le push est fait depuis l'event loop du serveur (Core 1, priorite idle),
@@ -267,6 +291,7 @@ void setupWebServer() {
   server.addHandler(new AsyncCallbackJsonWebHandler("/api/solo",    handleSolo));
   server.addHandler(new AsyncCallbackJsonWebHandler("/api/trigger", handleSetTrigger));
   server.addHandler(new AsyncCallbackJsonWebHandler("/api/test",    handleTestTrigger));
+  server.addHandler(new AsyncCallbackJsonWebHandler("/api/pad",     handlePad));
   // Phase 3 — F5 : WebSocket — endpoint /ws, push snapshot 500ms si client.
   ws.onEvent(wsOnEvent);
   server.addHandler(&ws);
