@@ -295,7 +295,9 @@
     refreshMemList();
     document.getElementById("mem-save").addEventListener("click", function () {
       var name = document.getElementById("mem-name").value || "Memory";
-      postJSON("/api/memory/save", { name: name })
+      var ccs = {};
+      try { ccs = JSON.parse(localStorage.getItem("acidbox-ccs") || "{}"); } catch(e) {}
+      postJSON("/api/memory/save", { name: name, ccs: ccs })
         .then(function (r) { return r.json(); })
         .then(function (res) { if (res.ok) { setStatus("Memory " + res.id + " created"); refreshMemList(); } })
         .catch(function () { setStatus("memory create failed"); });
@@ -305,7 +307,9 @@
       if (isNaN(id)) return;
       postJSON("/api/memory/load", { id: id })
         .then(function (r) { return r.json(); })
-        .then(function (res) { if (res.ok) setStatus("Memory " + id + " loaded"); })
+        .then(function (res) {
+          if (res.ok) setStatus("Memory " + id + " loaded — filters applied");
+        })
         .catch(function () { setStatus("memory load failed"); });
     });
     document.getElementById("mem-del").addEventListener("click", function () {

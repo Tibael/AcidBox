@@ -19,6 +19,7 @@ struct TriggerSlot {
 
 struct Memory {
   char         name[32];
+  uint8_t      globalCCs[128];   // global filter CCs (index = CC number)
   TriggerSlot  triggers[4];
 };
 

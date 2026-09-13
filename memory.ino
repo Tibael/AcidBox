@@ -32,6 +32,7 @@ static void clearSlot(TriggerSlot *s) {
 
 static void clearMemory(Memory *m) {
   m->name[0] = '\0';
+  for (int i = 0; i < 128; i++) m->globalCCs[i] = MEM_CC_UNUSED;
   for (int i = 0; i < 4; i++) clearSlot(&m->triggers[i]);
 }
 
@@ -63,6 +64,14 @@ bool loadMemories() {
     clearMemory(&m);
     const char *nm = o["name"];
     if (nm) { size_t l = strlen(nm); if (l > 31) l = 31; memcpy(m.name, nm, l); m.name[l] = '\0'; }
+    // global CCs
+    const JsonVariant gccVar = o["globalCCs"];
+    if (gccVar.is<JsonObject>()) {
+      for (JsonPair kv : gccVar.as<JsonObject>()) {
+        int cc = atoi(kv.key().c_str());
+        if (cc >= 0 && cc < 128) m.globalCCs[cc] = (uint8_t)constrain((int)kv.value(), 0, 127);
+      }
+    }
     JsonArray trArr = o["triggers"];
     if (!trArr.isNull()) {
       for (int t = 0; t < 4 && t < (int)trArr.size(); t++) {
@@ -91,6 +100,13 @@ bool saveMemories() {
   for (int i = 0; i < memCount; i++) {
     JsonObject o = arr.add<JsonObject>();
     o["name"] = memories[i].name;
+    // global CCs
+    JsonObject gccs = o.createNestedObject("globalCCs");
+    for (int c = 0; c < 128; c++) {
+      if (memories[i].globalCCs[c] != MEM_CC_UNUSED)
+        gccs[String(c)] = memories[i].globalCCs[c];
+    }
+    // triggers
     JsonArray trArr = o.createNestedArray("triggers");
     for (int t = 0; t < 4; t++) {
       JsonObject ts = trArr.add<JsonObject>();
@@ -139,6 +155,11 @@ void loadMemory(uint8_t id) {
   if (id >= memCount) return;
   currentMemory = id;
   Memory &m = memories[id];
+  // Send global filter CCs
+  for (int c = 0; c < 128; c++) {
+    if (m.globalCCs[c] != MEM_CC_UNUSED)
+      handleCC(10, (uint8_t)c, m.globalCCs[c]);
+  }
   // Apply triggers via existing trigger config API
   for (int t = 0; t < 4; t++) {
     triggers[t].channel  = m.triggers[t].channel;

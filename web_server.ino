@@ -112,9 +112,6 @@ static void handleStyleCss(AsyncWebServerRequest *req) {
 static void handleConfig(AsyncWebServerRequest *req) {
   serveFile(req, "/web/config.html", "text/html");
 }
-static void handleDebug(AsyncWebServerRequest *req) {
-  serveFile(req, "/web/debug.html", "text/html");
-}
 static void handleFilter(AsyncWebServerRequest *req) {
   serveFile(req, "/web/filter.html", "text/html");
 }
@@ -379,6 +376,15 @@ static void handleMemSave(AsyncWebServerRequest *req, JsonVariant &json) {
   const char *name = obj["name"] | "Memory";
   int idx = addMemory(name);
   if (idx < 0) { req->send(400, "application/json", "{\"ok\":false,\"error\":\"full\"}"); return; }
+  // Store global CCs
+  const JsonVariant ccVar = obj["ccs"];
+  if (ccVar.is<JsonObject>()) {
+    for (JsonPair kv : ccVar.as<JsonObject>()) {
+      int cc = atoi(kv.key().c_str());
+      if (cc >= 0 && cc < 128)
+        memories[idx].globalCCs[cc] = (uint8_t)constrain((int)kv.value(), 0, 127);
+    }
+  }
   saveMemories();
   String out = "{\"ok\":true,\"id\":"; out += idx; out += "}";
   req->send(200, "application/json", out);
@@ -459,7 +465,6 @@ void setupWebServer() {
   server.on("/app.js",        HTTP_GET,  handleAppJs);
   server.on("/style.css",     HTTP_GET,  handleStyleCss);
   server.on("/config",        HTTP_GET,  handleConfig);
-  server.on("/debug",         HTTP_GET,  handleDebug);
   server.on("/filter",        HTTP_GET,  handleFilter);
   server.on("/memory",        HTTP_GET,  handleMemory);
   server.on("/api/state",     HTTP_GET,  handleState);
