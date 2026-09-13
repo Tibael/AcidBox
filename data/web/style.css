@@ -59,6 +59,93 @@ header h1 {
 .conn-state.on  { color: var(--led-on); border-color: var(--led-on); }
 .conn-state.off { color: var(--mute);  border-color: var(--mute); }
 
+/* ---- nav ------------------------------------------------------------------ */
+.nav-links {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+.nav-links a {
+  text-decoration: none;
+  color: var(--text-dim);
+  font-size: 13px;
+  font-weight: 600;
+  padding: 4px 8px;
+  border-radius: 6px;
+  transition: color 120ms;
+}
+
+.nav-links a:hover { color: var(--text); }
+
+.nav-links a.active {
+  color: var(--accent);
+  background: rgba(45, 212, 167, 0.12);
+}
+
+/* ---- drumpad --------------------------------------------------------------- */
+#drumpad {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 16px;
+  padding: 20px;
+  max-width: 900px;
+  margin: 0 auto;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.pad {
+  touch-action: manipulation;
+  background: var(--panel);
+  border: 2px solid var(--panel-edge);
+  border-radius: 12px;
+  padding: 16px 10px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  cursor: pointer;
+  user-select: none;
+  -webkit-user-select: none;
+  min-height: 100px;
+  transition: transform 60ms ease, background 100ms ease, border-color 100ms ease, box-shadow 100ms ease;
+}
+
+.pad:hover {
+  border-color: var(--text-dim);
+  background: #1c1f26;
+}
+
+.pad.active, .pad:active {
+  transform: scale(0.96);
+  background: rgba(45, 212, 167, 0.18);
+  border-color: var(--accent);
+  box-shadow: 0 0 12px rgba(45, 212, 167, 0.4);
+}
+
+.pad-name {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--accent);
+  letter-spacing: 0.05em;
+}
+
+.pad-desc {
+  font-size: 12px;
+  color: var(--text);
+}
+
+.pad-note {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--solo);
+  background: rgba(224, 178, 82, 0.12);
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
 /* ---- mixer ---------------------------------------------------------------- */
 main#mixer {
   flex: 1;

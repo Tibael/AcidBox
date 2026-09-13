@@ -1,9 +1,10 @@
 /* ===========================================================================
- * AcidBox — mixer web UI
+ * AcidBox — web UI (drumpad + mixer)
  * API :
  *   GET  /api/state  -> { synth1:{mute,solo,audible}, synth2:{...}, drums:{...} }
  *   POST /api/mute   { instrument, muted }
  *   POST /api/solo   { instrument, solo }
+ *   POST /api/pad    { note, velocity }
  * ========================================================================== */
 (function () {
   "use strict";
@@ -14,6 +15,7 @@
 
   // ---- helpers -------------------------------------------------------------
   function setConnected(ok) {
+    if (!connEl) return;
     connEl.textContent = ok ? "connected" : "offline";
     connEl.className = "conn-state " + (ok ? "on" : "off");
   }
@@ -30,7 +32,36 @@
     });
   }
 
-  // Apply the state of one channel to its UI block.
+  // ---- drumpad -------------------------------------------------------------
+  function playPad(note, padEl) {
+    padEl.classList.add("active");
+    setTimeout(function () { padEl.classList.remove("active"); }, 120);
+    setStatus("Pad " + note + " played");
+    postJSON("/api/pad", { note: parseInt(note, 10), velocity: 127 })
+      .then(function (r) {
+        if (!r.ok) throw new Error("HTTP " + r.status);
+        setConnected(true);
+      })
+      .catch(function () {
+        setConnected(false);
+        setStatus("pad error");
+      });
+  }
+
+  function bindPads() {
+    if (!document.getElementById("drumpad")) return;
+    var pads = document.querySelectorAll(".pad");
+    for (var i = 0; i < pads.length; i++) {
+      (function (pad) {
+        pad.addEventListener("pointerdown", function (e) {
+          if (e.pointerType === "touch") e.preventDefault();
+          playPad(pad.getAttribute("data-note"), pad);
+        });
+      })(pads[i]);
+    }
+  }
+
+  // ---- mixer (page /mixer or legacy index) ---------------------------------
   function applyChannel(inst, state) {
     var block = document.querySelector('.channel[data-instrument="' + inst + '"]');
     if (!block) return;
@@ -48,7 +79,6 @@
     block.classList.toggle("silent", !state.audible);
   }
 
-  // Full re-sync from the server (source of truth for audible_*).
   function loadState() {
     fetch("/api/state", { headers: { "Accept": "application/json" } })
       .then(function (r) {
@@ -57,8 +87,10 @@
       })
       .then(function (state) {
         setConnected(true);
-        for (var i = 0; i < instruments.length; i++) {
-          if (state[instruments[i]]) applyChannel(instruments[i], state[instruments[i]]);
+        if (document.getElementById("mixer")) {
+          for (var i = 0; i < instruments.length; i++) {
+            if (state[instruments[i]]) applyChannel(instruments[i], state[instruments[i]]);
+          }
         }
         setStatus("ok");
       })
@@ -68,7 +100,6 @@
       });
   }
 
-  // Optimistic toggle: flip local button state, then confirm via API.
   function sendAction(kind, inst, value) {
     var url = kind === "mute" ? "/api/mute" : "/api/solo";
     var payload = { instrument: inst };
@@ -79,11 +110,11 @@
       .then(function (res) {
         if (!res || res.ok !== true) {
           setStatus(kind + " " + inst + ": refused");
-          loadState(); // roll back to server truth
+          loadState();
           return;
         }
         setStatus(kind + " " + inst + " = " + (value ? "on" : "off"));
-        loadState(); // refetch audible_* computed on firmware side
+        loadState();
       })
       .catch(function (err) {
         setConnected(false);
@@ -92,8 +123,8 @@
       });
   }
 
-  // ---- DOM binding ---------------------------------------------------------
-  function bind() {
+  function bindMixer() {
+    if (!document.getElementById("mixer")) return;
     for (var i = 0; i < instruments.length; i++) {
       (function (inst) {
         var block = document.querySelector('.channel[data-instrument="' + inst + '"]');
@@ -117,10 +148,15 @@
 
   // ---- init ----------------------------------------------------------------
   document.addEventListener("DOMContentLoaded", function () {
-    bind();
-    loadState();
-    // Periodic re-sync keeps the UI coherent with firmware
-    // (future: ESP-NOW remote mutes, etc). 2s cadence, cheap GET.
-    setInterval(loadState, 2000);
+    bindPads();
+    // Mixer page (legacy): bind channels + poll state.
+    // Drumpad page: state poll marks "connected" on successful load/pad.
+    if (document.getElementById("mixer")) {
+      bindMixer();
+      loadState();
+      setInterval(loadState, 2000);
+    } else {
+      loadState();
+    }
   });
 })();

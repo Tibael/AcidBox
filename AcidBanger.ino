@@ -1,4 +1,9 @@
 #ifdef JUKEBOX
+// Declarations anticipees : ordre alphabetique .ino => AcidBanger < midi_handler.
+// handleNoteOn/handleNoteOff sont definies plus loin dans l'unite de compilation
+// concatenee ; sans ces prototypes, les appels lignes ~304/~314 ne compilent pas.
+void handleNoteOn(uint8_t inChannel, uint8_t inNote, uint8_t inVelocity);
+void handleNoteOff(uint8_t inChannel, uint8_t inNote, uint8_t inVelocity);
 // This is The "Endless Acid Banger"
 //
 // Pattern generator code taken from

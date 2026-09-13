@@ -3,48 +3,81 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>AcidBox — Mixer</title>
+  <title>AcidBox — Drumpad</title>
   <link rel="stylesheet" href="/style.css">
 </head>
 <body>
   <header>
     <h1>AcidBox</h1>
+    <nav class="nav-links">
+      <a href="/" class="active">Drumpad</a>
+      <a href="/config">Config</a>
+      <a href="/debug">Debug</a>
+    </nav>
     <span id="conn" class="conn-state">connecting…</span>
   </header>
 
-  <main id="mixer">
-    <section class="channel" data-instrument="synth1">
-      <div class="channel-head">
-        <h2>Synth 1</h2>
-        <span class="led" title="audible"></span>
-      </div>
-      <div class="channel-btns">
-        <button class="btn mute" aria-pressed="false">Mute</button>
-        <button class="btn solo" aria-pressed="false">Solo</button>
-      </div>
-    </section>
-
-    <section class="channel" data-instrument="synth2">
-      <div class="channel-head">
-        <h2>Synth 2</h2>
-        <span class="led" title="audible"></span>
-      </div>
-      <div class="channel-btns">
-        <button class="btn mute" aria-pressed="false">Mute</button>
-        <button class="btn solo" aria-pressed="false">Solo</button>
-      </div>
-    </section>
-
-    <section class="channel" data-instrument="drums">
-      <div class="channel-head">
-        <h2>Drums</h2>
-        <span class="led" title="audible"></span>
-      </div>
-      <div class="channel-btns">
-        <button class="btn mute" aria-pressed="false">Mute</button>
-        <button class="btn solo" aria-pressed="false">Solo</button>
-      </div>
-    </section>
+  <main id="drumpad">
+    <button class="pad" data-note="36" type="button">
+      <span class="pad-name">BD</span>
+      <span class="pad-desc">Bass Drum</span>
+      <span class="pad-note">Note 36</span>
+    </button>
+    <button class="pad" data-note="38" type="button">
+      <span class="pad-name">SD</span>
+      <span class="pad-desc">Snare Drum</span>
+      <span class="pad-note">Note 38</span>
+    </button>
+    <button class="pad" data-note="37" type="button">
+      <span class="pad-name">RS</span>
+      <span class="pad-desc">Rim Shot</span>
+      <span class="pad-note">Note 37</span>
+    </button>
+    <button class="pad" data-note="39" type="button">
+      <span class="pad-name">CP</span>
+      <span class="pad-desc">Hand Clap</span>
+      <span class="pad-note">Note 39</span>
+    </button>
+    <button class="pad" data-note="42" type="button">
+      <span class="pad-name">CH</span>
+      <span class="pad-desc">Closed Hi-Hat</span>
+      <span class="pad-note">Note 42</span>
+    </button>
+    <button class="pad" data-note="46" type="button">
+      <span class="pad-name">OH</span>
+      <span class="pad-desc">Open Hi-Hat</span>
+      <span class="pad-note">Note 46</span>
+    </button>
+    <button class="pad" data-note="41" type="button">
+      <span class="pad-name">LT</span>
+      <span class="pad-desc">Low Tom</span>
+      <span class="pad-note">Note 41</span>
+    </button>
+    <button class="pad" data-note="45" type="button">
+      <span class="pad-name">MT</span>
+      <span class="pad-desc">Mid Tom</span>
+      <span class="pad-note">Note 45</span>
+    </button>
+    <button class="pad" data-note="48" type="button">
+      <span class="pad-name">HT</span>
+      <span class="pad-desc">Hi Tom</span>
+      <span class="pad-note">Note 48</span>
+    </button>
+    <button class="pad" data-note="49" type="button">
+      <span class="pad-name">CY</span>
+      <span class="pad-desc">Crash Cymbal</span>
+      <span class="pad-note">Note 49</span>
+    </button>
+    <button class="pad" data-note="51" type="button">
+      <span class="pad-name">CB</span>
+      <span class="pad-desc">Cowbell</span>
+      <span class="pad-note">Note 51</span>
+    </button>
+    <button class="pad" data-note="44" type="button">
+      <span class="pad-name">CH2</span>
+      <span class="pad-desc">Pedal/Closed Hat 2</span>
+      <span class="pad-note">Note 44</span>
+    </button>
   </main>
 
   <footer>
