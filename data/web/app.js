@@ -208,12 +208,26 @@
         });
       })(sliders[i]);
     }
-    // F5: send all saved CCs to firmware on load
+    // F5: send all CCs to firmware on load (from localStorage or HTML defaults)
     try {
       var saved = JSON.parse(localStorage.getItem("acidbox-ccs") || "{}");
+      var hasKeys = false;
       Object.keys(saved).forEach(function(cc) {
+        hasKeys = true;
         postJSON("/api/cc", { channel: getChan(), cc: parseInt(cc,10), value: saved[cc] });
       });
+      // First visit: send all HTML default values to firmware
+      if (!hasKeys) {
+        var defaults = {};
+        var sliders = document.querySelectorAll(".cc-slider");
+        for (var i = 0; i < sliders.length; i++) {
+          var cc = parseInt(sliders[i].getAttribute("data-cc"), 10);
+          var val = parseInt(sliders[i].value, 10);
+          defaults[cc] = val;
+          postJSON("/api/cc", { channel: getChan(), cc: cc, value: val });
+        }
+        localStorage.setItem("acidbox-ccs", JSON.stringify(defaults));
+      }
     } catch(e) {}
     // Presets
     refreshPresetList();

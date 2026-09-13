@@ -395,7 +395,18 @@ static void handleMemLoad(AsyncWebServerRequest *req, JsonVariant &json) {
   const uint16_t id = obj["id"];
   if (id >= memCount) { req->send(400, "application/json", "{\"ok\":false,\"error\":\"bad-id\"}"); return; }
   loadMemory((uint8_t)id);
-  req->send(200, "application/json", "{\"ok\":true}");
+  // Return CCs so frontend can update localStorage/sliders
+  Memory &m = memories[id];
+  JsonDocument doc;
+  doc["ok"] = true;
+  doc["id"] = id;
+  JsonObject ccs = doc.createNestedObject("ccs");
+  for (int c = 0; c < 128; c++) {
+    if (m.globalCCs[c] != MEM_CC_UNUSED)
+      ccs[String(c)] = m.globalCCs[c];
+  }
+  String out; serializeJson(doc, out);
+  req->send(200, "application/json", out);
 }
 // POST /api/memory/del  { id } → { ok:true }
 static void handleMemDel(AsyncWebServerRequest *req, JsonVariant &json) {

@@ -36,33 +36,33 @@
       <h3>TR-808 Controls</h3>
 
       <h3>General &mdash; all drums</h3>
-      <label>Volume <input type="range" class="cc-slider" min="0" max="127" value="64" data-cc="7"> <output class="cc-val">64</output></label>
+      <label>Volume <input type="range" class="cc-slider" min="0" max="127" value="127" data-cc="7"> <output class="cc-val">127</output></label>
       <label>Pan <input type="range" class="cc-slider" min="0" max="127" value="64" data-cc="10"> <output class="cc-val">64</output></label>
-      <label>Cutoff <input type="range" class="cc-slider" min="0" max="127" value="64" data-cc="74"> <output class="cc-val">64</output></label>
-      <label>Resonance <input type="range" class="cc-slider" min="0" max="127" value="64" data-cc="71"> <output class="cc-val">64</output></label>
+      <label>Cutoff <input type="range" class="cc-slider" min="0" max="127" value="127" data-cc="74"> <output class="cc-val">127</output></label>
+      <label>Resonance <input type="range" class="cc-slider" min="0" max="127" value="0" data-cc="71"> <output class="cc-val">0</output></label>
       <label>Pitch <input type="range" class="cc-slider" min="0" max="127" value="64" data-cc="89"> <output class="cc-val">64</output></label>
       <label>Decay <input type="range" class="cc-slider" min="0" max="127" value="64" data-cc="72"> <output class="cc-val">64</output></label>
       <label>Attack <input type="range" class="cc-slider" min="0" max="127" value="64" data-cc="73"> <output class="cc-val">64</output></label>
-      <label>Reverb Send <input type="range" class="cc-slider" min="0" max="127" value="64" data-cc="91"> <output class="cc-val">64</output></label>
-      <label>Delay Send <input type="range" class="cc-slider" min="0" max="127" value="64" data-cc="92"> <output class="cc-val">64</output></label>
-      <label>Distortion <input type="range" class="cc-slider" min="0" max="127" value="64" data-cc="94"> <output class="cc-val">64</output></label>
+      <label>Reverb Send <input type="range" class="cc-slider" min="0" max="127" value="0" data-cc="91"> <output class="cc-val">0</output></label>
+      <label>Delay Send <input type="range" class="cc-slider" min="0" max="127" value="0" data-cc="92"> <output class="cc-val">0</output></label>
+      <label>Distortion <input type="range" class="cc-slider" min="0" max="127" value="0" data-cc="94"> <output class="cc-val">0</output></label>
 
       <h3>Bass Drum</h3>
       <label>BD Tone <input type="range" class="cc-slider" min="0" max="127" value="64" data-cc="21"> <output class="cc-val">64</output></label>
       <label>BD Decay <input type="range" class="cc-slider" min="0" max="127" value="64" data-cc="23"> <output class="cc-val">64</output></label>
-      <label>BD Level <input type="range" class="cc-slider" min="0" max="127" value="64" data-cc="24"> <output class="cc-val">64</output></label>
+      <label>BD Level <input type="range" class="cc-slider" min="0" max="127" value="100" data-cc="24"> <output class="cc-val">100</output></label>
 
       <h3>Snare Drum</h3>
       <label>SD Tone <input type="range" class="cc-slider" min="0" max="127" value="64" data-cc="25"> <output class="cc-val">64</output></label>
       <label>SD Snap <input type="range" class="cc-slider" min="0" max="127" value="64" data-cc="26"> <output class="cc-val">64</output></label>
-      <label>SD Level <input type="range" class="cc-slider" min="0" max="127" value="64" data-cc="29"> <output class="cc-val">64</output></label>
+      <label>SD Level <input type="range" class="cc-slider" min="0" max="127" value="100" data-cc="29"> <output class="cc-val">100</output></label>
 
       <h3>Hi-Hats</h3>
       <label>CH Tune <input type="range" class="cc-slider" min="0" max="127" value="64" data-cc="61"> <output class="cc-val">64</output></label>
-      <label>CH Level <input type="range" class="cc-slider" min="0" max="127" value="64" data-cc="63"> <output class="cc-val">64</output></label>
+      <label>CH Level <input type="range" class="cc-slider" min="0" max="127" value="100" data-cc="63"> <output class="cc-val">100</output></label>
       <label>OH Tune <input type="range" class="cc-slider" min="0" max="127" value="64" data-cc="80"> <output class="cc-val">64</output></label>
       <label>OH Decay <input type="range" class="cc-slider" min="0" max="127" value="64" data-cc="81"> <output class="cc-val">64</output></label>
-      <label>OH Level <input type="range" class="cc-slider" min="0" max="127" value="64" data-cc="82"> <output class="cc-val">64</output></label>
+      <label>OH Level <input type="range" class="cc-slider" min="0" max="127" value="100" data-cc="82"> <output class="cc-val">100</output></label>
     </section>
 
     <section class="filter-section">
@@ -75,7 +75,8 @@
         <button class="btn" id="preset-del">Del</button>
       </div>
     </section>
-  <section class="filter-section">
+
+    <section class="filter-section">
       <h3>Assign to Sensor</h3>
       <div class="filter-row" style="gap:8px">
         <select id="assign-trigger">
