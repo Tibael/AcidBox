@@ -322,7 +322,15 @@
       postJSON("/api/memory/load", { id: id })
         .then(function (r) { return r.json(); })
         .then(function (res) {
-          if (res.ok) setStatus("Memory " + id + " loaded — filters applied");
+          if (res.ok) {
+            // Persist returned CCs so /filter sliders reflect the loaded memory
+            if (res.ccs) {
+              try { localStorage.setItem("acidbox-ccs", JSON.stringify(res.ccs)); } catch (e) {}
+              setStatus("Memory " + id + " loaded — " + Object.keys(res.ccs).length + " CCs restored");
+            } else {
+              setStatus("Memory " + id + " loaded (no CCs saved)");
+            }
+          }
         })
         .catch(function () { setStatus("memory load failed"); });
     });
