@@ -116,6 +116,10 @@ For the time being the following list of MIDI continious controllers is availabl
     #define CC_ANY_NOTES_OFF    123
     #define CC_ANY_SOUND_OFF    120
 
+# TROUBLESHOOTING
+TypeError: ParamType.get_metavar() missing 1 required positional argument: 'ctx'
+*** [.pio/build/xiao_esp32s3/bootloader.bin] Error 1 : pip install "click<8.2" 
+
 # Functional diagram 
 <img src="https://github.com/copych/AcidBox/blob/main/media/2022-12-14_00-03-18.png" width=100%>
 ("Acid Banger" JukeBox actually calls midi functions as an external app would do)

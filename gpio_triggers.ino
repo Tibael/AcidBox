@@ -29,6 +29,10 @@
 #include "config.h"
 #include <LittleFS.h>
 #include <ArduinoJson.h>
+const int hallPins[4] = {SENSOR1_PIN, SENSOR2_PIN, SENSOR3_PIN, SENSOR4_PIN};
+const int nbHallSensors = sizeof(hallPins)/sizeof(hallPins[0]);
+int readValues[nbHallSensors] = {1 * nbHallSensors};
+int _readValues[nbHallSensors] = {1 * nbHallSensors};
 
 // declarations anticipatees (midi_handler.ino, plus loin dans la compilation)
 void handleNoteOn(uint8_t channel, uint8_t note, uint8_t velocity);
@@ -54,6 +58,12 @@ TriggerConfig triggers[4] = {
 // comme sentinelle.
 static uint8_t held_note[4] = { 0, 0, 0, 0 };
 static bool    held_active[4] = { false, false, false, false };
+
+void initGPIO(){
+  for (int x=0; x < nbHallSensors; x++){
+    pinMode(hallPins[x], INPUT_PULLUP);
+  }
+}
 
 // ------------------------------------------------------------------------ fire
 // A appeler HORS hot path (tache web / loop / code GPIO utilisateur).
@@ -84,7 +94,16 @@ void releaseTrigger(uint8_t id) {
 // front montant appeler fireTrigger(i), sur front descendant releaseTrigger(i).
 // N'AJOUTER RIEN dans le chemin audio (mixer / *_generate / Process / getSample).
 void readTriggerGPIOs() {
-  // vide — l'utilisateur y branche son propre code GPIO
+  for (int x=0; x < nbHallSensors; x++){
+    readValues[x] = digitalRead(hallPins[x]);
+    if (readValues[x] != _readValues[x]){
+      if (!readValues[x])
+      {
+        fireTrigger(x);
+      }
+      _readValues[x]=readValues[x];
+    }
+  }
 }
 
 // ---------------------------------------------------------------- persistance

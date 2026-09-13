@@ -317,6 +317,8 @@ void setup(void) {
 
   setupWebServer(); // Phase 1 F1/F2 — AP + ESPAsyncWebServer (Core 1, idle)
 
+  initGPIO();
+
 #if ESPNOW_ENABLED
   // Phase 4 F6 — squelette ESP-NOW, DÉSACTIVÉ par défaut (ESPNOW_ENABLED=0).
   // Appelée APRES setupWebServer : le mode WiFi AP et le canal radio (canal 1)
@@ -380,6 +382,7 @@ void loop() { // default loopTask running on the Core1
   
   // processButtons();
   regular_checks();
+  readTriggerGPIOs();
 #if WEB_SERVER_ENABLED
   wsPush(); // Phase 3 F5 : push WS 500ms si client connecte (Core 1, idle)
 #endif
